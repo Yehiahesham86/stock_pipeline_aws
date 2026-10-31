@@ -2,3 +2,4 @@
 terraform-provider-*
 *.tfstate
 *.tfstate.backup
+*.backup

@@ -31,3 +31,4 @@ resource "aws_dms_replication_instance" "stock" {
     Project = "StockDataPipeline"
   }
 }
+

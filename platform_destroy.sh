@@ -3,9 +3,10 @@
 set -e
 
 directories=(
-    "vpc_config"
-    "storage/s3_bronze"
     "ingestion/dms"
+    "storage/s3_bronze"
+    "vpc_config"
+
 )
 
 for dir in "${directories[@]}"; do

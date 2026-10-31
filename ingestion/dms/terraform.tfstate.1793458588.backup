@@ -1,0 +1,539 @@
+{
+  "version": 4,
+  "terraform_version": "1.17.0",
+  "serial": 14,
+  "lineage": "fe2490f1-2fae-cbd6-e296-24c4e183d19d",
+  "outputs": {
+    "dms_security_group_id": {
+      "value": "sg-0d9d2e6bc6699cd0c",
+      "type": "string"
+    },
+    "dms_subnet_group_id": {
+      "value": "stock-pipeline-dms-subnets",
+      "type": "string"
+    },
+    "replication_instance_arn": {
+      "value": null,
+      "type": "string"
+    },
+    "replication_instance_private_ips": {
+      "value": null,
+      "type": [
+        "list",
+        "string"
+      ]
+    },
+    "replication_task_arn": {
+      "value": null,
+      "type": "string"
+    },
+    "replication_task_status": {
+      "value": null,
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "s3",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../../storage/s3_bronze/terraform.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "bronze_prefix": "bronze/",
+                "bucket_arn": "arn:aws:s3:::stock-bronze-unique123",
+                "bucket_name": "stock-bronze-unique123"
+              },
+              "type": [
+                "object",
+                {
+                  "bronze_prefix": "string",
+                  "bucket_arn": "string",
+                  "bucket_name": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "data",
+      "type": "terraform_remote_state",
+      "name": "vpc",
+      "provider": "provider[\"terraform.io/builtin/terraform\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "backend": "local",
+            "config": {
+              "value": {
+                "path": "../../vpc_config/terraform.tfstate"
+              },
+              "type": [
+                "object",
+                {
+                  "path": "string"
+                }
+              ]
+            },
+            "defaults": null,
+            "outputs": {
+              "value": {
+                "internet_gateway_id": "igw-00c6cf0529bcf7504",
+                "public_route_table_id": "rtb-0dbc9bafe8dd06f10",
+                "public_subnet_a_id": "subnet-03694eb69011d57a8",
+                "public_subnet_b_id": "subnet-0be36310d00816902",
+                "public_subnet_ids": [
+                  "subnet-03694eb69011d57a8",
+                  "subnet-0be36310d00816902"
+                ],
+                "vpc_id": "vpc-070a9f66935a68d44"
+              },
+              "type": [
+                "object",
+                {
+                  "internet_gateway_id": "string",
+                  "public_route_table_id": "string",
+                  "public_subnet_a_id": "string",
+                  "public_subnet_b_id": "string",
+                  "public_subnet_ids": [
+                    "tuple",
+                    [
+                      "string",
+                      "string"
+                    ]
+                  ],
+                  "vpc_id": "string"
+                }
+              ]
+            },
+            "workspace": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_dms_endpoint",
+      "name": "postgres_source",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "certificate_arn": "",
+            "database_name": "stock_market",
+            "elasticsearch_settings": [],
+            "endpoint_arn": "arn:aws:dms:us-east-1:765332580934:endpoint:L7YVBQDVOREILGZ3RN5SKXVMUE",
+            "endpoint_id": "stock-postgres-source",
+            "endpoint_type": "source",
+            "engine_name": "postgres",
+            "extra_connection_attributes": "",
+            "id": "stock-postgres-source",
+            "kafka_settings": [],
+            "kinesis_settings": [],
+            "kms_key_arn": "arn:aws:kms:us-east-1:765332580934:key/9a3457a7-1c6a-4cd6-b78a-73161a3e2beb",
+            "mongodb_settings": [],
+            "mysql_settings": [],
+            "oracle_settings": [],
+            "password": "y-f-yehia-admin",
+            "pause_replication_tasks": null,
+            "port": 41709,
+            "postgres_settings": [
+              {
+                "after_connect_script": "",
+                "authentication_method": "password",
+                "babelfish_database_name": "",
+                "capture_ddls": false,
+                "database_mode": "",
+                "ddl_artifacts_schema": "",
+                "execute_timeout": 0,
+                "fail_tasks_on_lob_truncation": false,
+                "heartbeat_enable": false,
+                "heartbeat_frequency": 0,
+                "heartbeat_schema": "",
+                "map_boolean_as_boolean": false,
+                "map_jsonb_as_clob": false,
+                "map_long_varchar_as": "",
+                "max_file_size": 0,
+                "plugin_name": "",
+                "service_access_role_arn": "",
+                "slot_name": ""
+              }
+            ],
+            "redis_settings": [],
+            "redshift_settings": [],
+            "region": "us-east-1",
+            "secrets_manager_access_role_arn": "",
+            "secrets_manager_arn": "",
+            "server_name": "moxsr-217-53-215-119.run.pinggy-free.link",
+            "service_access_role": null,
+            "ssl_mode": "none",
+            "tags": {
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Project": "StockDataPipeline"
+            },
+            "timeouts": null,
+            "username": "admin"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwfX0="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_dms_replication_subnet_group",
+      "name": "stock",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "stock-pipeline-dms-subnets",
+            "region": "us-east-1",
+            "replication_subnet_group_arn": "arn:aws:dms:us-east-1:765332580934:subgrp:stock-pipeline-dms-subnets",
+            "replication_subnet_group_description": "Subnets for stock pipeline DMS",
+            "replication_subnet_group_id": "stock-pipeline-dms-subnets",
+            "subnet_ids": [
+              "subnet-03694eb69011d57a8",
+              "subnet-0be36310d00816902"
+            ],
+            "tags": {
+              "Name": "stock-pipeline-dms-subnets",
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Name": "stock-pipeline-dms-subnets",
+              "Project": "StockDataPipeline"
+            },
+            "vpc_id": "vpc-0bfcf4d9ff984b884"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "data.terraform_remote_state.vpc"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_dms_s3_endpoint",
+      "name": "s3_target",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "add_column_name": true,
+            "add_trailing_padding_character": false,
+            "bucket_folder": "bronze/",
+            "bucket_name": "stock-bronze-unique123",
+            "canned_acl_for_objects": "",
+            "cdc_inserts_and_updates": false,
+            "cdc_inserts_only": false,
+            "cdc_max_batch_interval": 0,
+            "cdc_min_file_size": 0,
+            "cdc_path": "",
+            "certificate_arn": "",
+            "compression_type": "GZIP",
+            "csv_delimiter": ",",
+            "csv_no_sup_value": "",
+            "csv_null_value": "",
+            "csv_row_delimiter": "\\n",
+            "data_format": "parquet",
+            "data_page_size": 0,
+            "date_partition_delimiter": "",
+            "date_partition_enabled": true,
+            "date_partition_sequence": "",
+            "date_partition_timezone": "",
+            "detach_target_on_lob_lookup_failure_parquet": null,
+            "dict_page_size_limit": 0,
+            "enable_statistics": true,
+            "encoding_type": "",
+            "encryption_mode": "",
+            "endpoint_arn": "arn:aws:dms:us-east-1:765332580934:endpoint:D6E4IMCMVJBRNFNGQT6Z46ZD5A",
+            "endpoint_id": "stock-s3-bronze-target",
+            "endpoint_type": "target",
+            "engine_display_name": "Amazon S3",
+            "expected_bucket_owner": "",
+            "external_id": "",
+            "external_table_definition": "",
+            "glue_catalog_generation": false,
+            "id": "stock-s3-bronze-target",
+            "ignore_header_rows": 0,
+            "include_op_for_full_load": false,
+            "kms_key_arn": "",
+            "max_file_size": 0,
+            "parquet_timestamp_in_millisecond": false,
+            "parquet_version": "",
+            "preserve_transactions": false,
+            "region": "us-east-1",
+            "rfc_4180": true,
+            "row_group_length": 0,
+            "server_side_encryption_kms_key_id": "",
+            "service_access_role_arn": "arn:aws:iam::765332580934:role/stock-pipeline-dms-s3-access",
+            "ssl_mode": "none",
+            "status": "active",
+            "tags": {
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Project": "StockDataPipeline"
+            },
+            "timeouts": null,
+            "timestamp_column_name": "",
+            "use_csv_no_sup_value": false,
+            "use_task_start_time_for_full_load_timestamp": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "aws_iam_role.dms_s3_access",
+            "data.terraform_remote_state.s3"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "dms_s3_access",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::765332580934:role/stock-pipeline-dms-s3-access",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-10-31T06:54:35Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "stock-pipeline-dms-s3-access",
+            "inline_policy": [
+              {
+                "name": "stock-pipeline-dms-s3-write",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:ListBucket\",\"s3:GetBucketLocation\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::stock-bronze-unique123\"},{\"Action\":[\"s3:PutObject\",\"s3:AbortMultipartUpload\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::stock-bronze-unique123/bronze/*\"}]}"
+              }
+            ],
+            "managed_policy_arns": [],
+            "max_session_duration": 3600,
+            "name": "stock-pipeline-dms-s3-access",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Project": "StockDataPipeline"
+            },
+            "unique_id": "AROA3EMLANJDLX2TKSVP6"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "765332580934",
+            "name": "stock-pipeline-dms-s3-access"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "dms_vpc",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::765332580934:role/dms-vpc-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-10-31T06:54:35Z",
+            "description": "Allows AWS DMS to manage VPC networking",
+            "force_detach_policies": false,
+            "id": "dms-vpc-role",
+            "inline_policy": [],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "dms-vpc-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Project": "StockDataPipeline"
+            },
+            "unique_id": "AROA3EMLANJDH2LSHRHHM"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "765332580934",
+            "name": "dms-vpc-role"
+          },
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "dms_s3_access",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "stock-pipeline-dms-s3-access:stock-pipeline-dms-s3-write",
+            "name": "stock-pipeline-dms-s3-write",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:ListBucket\",\"s3:GetBucketLocation\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::stock-bronze-unique123\"},{\"Action\":[\"s3:PutObject\",\"s3:AbortMultipartUpload\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::stock-bronze-unique123/bronze/*\"}]}",
+            "role": "stock-pipeline-dms-s3-access"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "765332580934",
+            "name": "stock-pipeline-dms-s3-write",
+            "role": "stock-pipeline-dms-s3-access"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.dms_s3_access",
+            "data.terraform_remote_state.s3"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "dms_vpc",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "dms-vpc-role/arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole",
+            "role": "dms-vpc-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "765332580934",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole",
+            "role": "dms-vpc-role"
+          },
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.dms_vpc"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "dms",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:765332580934:security-group/sg-0d9d2e6bc6699cd0c",
+            "description": "Network access for stock pipeline DMS",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "Outbound connectivity for DMS",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-0d9d2e6bc6699cd0c",
+            "ingress": [],
+            "name": "stock-pipeline-dms-sg",
+            "name_prefix": "",
+            "owner_id": "765332580934",
+            "region": "us-east-1",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Name": "stock-pipeline-dms-sg",
+              "Project": "StockDataPipeline"
+            },
+            "tags_all": {
+              "Name": "stock-pipeline-dms-sg",
+              "Project": "StockDataPipeline"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-070a9f66935a68d44"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "identity": {
+            "account_id": "765332580934",
+            "id": "sg-0d9d2e6bc6699cd0c",
+            "region": "us-east-1"
+          },
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "data.terraform_remote_state.vpc"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}

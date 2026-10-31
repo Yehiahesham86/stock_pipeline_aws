@@ -3,8 +3,8 @@
 set -e
 
 directories=(
-    "vpc_config"
     "storage/s3_bronze"
+    "vpc_config"
     "ingestion/dms"
 )
 

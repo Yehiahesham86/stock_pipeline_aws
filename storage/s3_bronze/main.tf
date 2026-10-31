@@ -21,6 +21,7 @@ resource "aws_s3_bucket" "bronze" {
     Environment = "Development"
     Project     = "StockDataPipeline"
   }
+  force_destroy = true
 }
 
 # Enable versioning for the S3 bucket

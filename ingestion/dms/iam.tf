@@ -34,7 +34,8 @@ resource "aws_iam_role_policy" "dms_s3_access" {
 
         Action = [
           "s3:ListBucket",
-          "s3:GetBucketLocation"
+          "s3:GetBucketLocation",
+          "s3:DeleteObject"
         ]
 
         Resource = local.bucket_arn

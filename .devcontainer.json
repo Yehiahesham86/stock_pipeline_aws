@@ -1,0 +1,24 @@
+{
+  "name": "Terraform Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  
+  // Installs Terraform automatically during container creation
+  "features": {
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "latest"
+    },
+    // Installs aws cli automatically during container creation
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+    "version": "latest"
+  }
+  },
+
+  // Installs the official HashiCorp extension in VS Code
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform"
+      ]
+    }
+  }
+}

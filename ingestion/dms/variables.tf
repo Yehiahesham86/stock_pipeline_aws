@@ -20,13 +20,13 @@ variable "allocated_storage" {
 variable "source_host" {
   description = "PostgreSQL hostname exposed through Pinggy"
   type        = string
-  default     = "ecpgw-217-53-215-119.run.pinggy-free.link"
+  default     = "tqzzr-217-53-158-244.run.pinggy-free.link"
 }
 
 variable "source_port" {
   description = "PostgreSQL port exposed through Pinggy"
   type        = number
-  default     = 37595
+  default     = 44841
 }
 
 variable "database_name" {
@@ -45,4 +45,5 @@ variable "database_password" {
   description = "PostgreSQL password"
   type        = string
   sensitive   = true
+  default     = "y-f-yehia-admin"
 }

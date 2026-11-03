@@ -1,7 +1,7 @@
 
 resource "aws_dms_replication_task" "stock" {
-  replication_task_id      = "stock-pipeline-replication"
-  migration_type           = "full-load-and-cdc"
+  replication_task_id = "stock-pipeline-replication"
+  migration_type      = "full-load-and-cdc"
 
   replication_instance_arn = aws_dms_replication_instance.stock.replication_instance_arn
 
@@ -9,9 +9,9 @@ resource "aws_dms_replication_task" "stock" {
   target_endpoint_arn = aws_dms_s3_endpoint.s3_target.endpoint_arn
   #replecation logging
   replication_task_settings = jsonencode({
-  Logging = {
-    EnableLogging = true
-  }
+    Logging = {
+      EnableLogging = true
+    }
   })
 
   table_mappings = jsonencode({

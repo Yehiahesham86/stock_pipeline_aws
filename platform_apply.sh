@@ -5,7 +5,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ==========================================
 # AWS configuration
+# ==========================================
+
 REGION="us-east-1"
 ACCOUNT_ID="765332580934"
 REPOSITORY="stock-bronze-catalog-manager"
@@ -14,17 +17,17 @@ IMAGE_TAG="v1"
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
 LAMBDA_DIR="trans_layer/lambda_trans"
 
-# Terraform modules
+DOCKER_CONFIG_DIR="/tmp/docker-platform-config"
+
+# Terraform modules deployed before Lambda
 directories=(
     "vpc_config"
     "storage/s3_bronze"
     "ingestion/dms"
-    "trans_layer/lambda_trans"
-    "trans_layer/glue_data_catalog"
 )
 
 # ==========================================
-# 1. Deploy Terraform infrastructure
+# 1. Deploy prerequisite infrastructure
 # ==========================================
 
 for dir in "${directories[@]}"; do
@@ -41,69 +44,101 @@ for dir in "${directories[@]}"; do
 
 done
 
-cd "$ROOT_DIR"
+# ==========================================
+# 2. Create ECR repository
+# ==========================================
 
 echo "=================================="
-echo "Infrastructure deployment completed"
+echo "Preparing ECR repository"
 echo "=================================="
+
+cd "$ROOT_DIR/$LAMBDA_DIR"
+
+terraform init
+terraform fmt
+
+# Create only the ECR repository before pushing
+terraform apply \
+    -target=aws_ecr_repository.lambda \
+    -auto-approve
 
 # ==========================================
-# 2. Prepare Docker public image pulls
+# 3. Prepare Docker configuration
 # ==========================================
 
 echo "Preparing temporary Docker configuration..."
 
-mkdir -p /tmp/docker-public-config
+mkdir -p "$DOCKER_CONFIG_DIR"
 
-echo '{"auths":{}}' > /tmp/docker-public-config/config.json
-
-# ==========================================
-# 3. Pull AWS Lambda base image
-# ==========================================
-
-echo "Pulling AWS Lambda Python base image..."
-
-DOCKER_CONFIG=/tmp/docker-public-config \
-docker pull public.ecr.aws/lambda/python:3.12
+echo '{"auths":{}}' > "$DOCKER_CONFIG_DIR/config.json"
 
 # ==========================================
 # 4. Build Lambda container image
 # ==========================================
 
-echo "Building Lambda image..."
+echo "=================================="
+echo "Building Lambda image"
+echo "=================================="
 
-cd "$ROOT_DIR/$LAMBDA_DIR"
-
-DOCKER_CONFIG=/tmp/docker-public-config \
-docker build --platform linux/amd64 \
-    -t "${REPOSITORY}:${IMAGE_TAG}" .
-
-cd "$ROOT_DIR"
+DOCKER_CONFIG="$DOCKER_CONFIG_DIR" \
+docker build \
+    --platform linux/amd64 \
+    -t "${ECR_URI}:${IMAGE_TAG}" .
 
 # ==========================================
 # 5. Authenticate with AWS ECR
 # ==========================================
 
-echo "Authenticating with AWS ECR..."
+echo "=================================="
+echo "Authenticating with ECR"
+echo "=================================="
 
 aws ecr get-login-password --region "$REGION" | \
-docker login \
+DOCKER_CONFIG="$DOCKER_CONFIG_DIR" docker login \
     --username AWS \
-    --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+    --password-stdin "$ECR_URI"
 
 # ==========================================
-# 6. Tag and push Lambda image
+# 6. Push image to ECR
 # ==========================================
-
-echo "Tagging Lambda image..."
-
-docker tag "${REPOSITORY}:${IMAGE_TAG}" \
-    "${ECR_URI}:${IMAGE_TAG}"
-
-echo "Pushing Lambda image to ECR..."
-
-docker push "${ECR_URI}:${IMAGE_TAG}"
 
 echo "=================================="
-echo "Infrastructure and image deployment completed!"
+echo "Pushing Lambda image"
+echo "=================================="
+
+DOCKER_CONFIG="$DOCKER_CONFIG_DIR" \
+docker push "${ECR_URI}:${IMAGE_TAG}"
+
+# ==========================================
+# 7. Deploy Lambda infrastructure
+# ==========================================
+
+echo "=================================="
+echo "Deploying Lambda infrastructure"
+echo "=================================="
+
+terraform apply -auto-approve
+
+# ==========================================
+# 8. Deploy Glue Data Catalog
+# ==========================================
+
+cd "$ROOT_DIR/trans_layer/glue_data_catalog"
+
+echo "=================================="
+echo "Deploying Glue Data Catalog"
+echo "=================================="
+
+terraform init
+terraform fmt
+terraform apply -auto-approve
+
+# ==========================================
+# Completed
+# ==========================================
+
+cd "$ROOT_DIR"
+
+echo "=================================="
+echo "Platform deployment completed!"
 echo "=================================="

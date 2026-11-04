@@ -34,8 +34,10 @@ resource "aws_dms_s3_endpoint" "s3_target" {
   compression_type = "GZIP"
   add_column_name  = true
 
-  date_partition_enabled = true
-
+  date_partition_enabled   = true
+  date_partition_sequence  = "YYYYMMDD"
+  date_partition_delimiter = "SLASH"
+  date_partition_timezone  = "UTC"
   tags = {
     Project = "StockDataPipeline"
   }

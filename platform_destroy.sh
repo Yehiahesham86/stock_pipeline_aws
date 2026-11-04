@@ -7,7 +7,6 @@ directories=(
     "storage/s3_bronze"
     "vpc_config"
     "trans_layer/glue_data_catalog"
-    "trans_layer/crawler"
 
 )
 

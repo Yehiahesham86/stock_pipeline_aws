@@ -14,7 +14,7 @@ provider "aws" {
 
 # Create an S3 bucket for the bronze layer
 resource "aws_s3_bucket" "bronze" {
-  bucket = var.bucket_name
+  bucket = var.bronze_bucket_name
 
   tags = {
     Name        = "Stock Data Bronze"

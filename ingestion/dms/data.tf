@@ -26,12 +26,3 @@ data "terraform_remote_state" "s3" {
     path = var.s3_state_path
   }
 }
-
-locals {
-  vpc_id            = data.terraform_remote_state.vpc.outputs.vpc_id
-  public_subnet_ids = data.terraform_remote_state.vpc.outputs.public_subnet_ids
-
-  bucket_name   = data.terraform_remote_state.s3.outputs.bucket_name
-  bucket_arn    = data.terraform_remote_state.s3.outputs.bucket_arn
-  bronze_prefix = data.terraform_remote_state.s3.outputs.bronze_prefix
-}

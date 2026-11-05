@@ -3,7 +3,7 @@ resource "aws_dms_replication_subnet_group" "stock" {
   replication_subnet_group_id          = "stock-pipeline-dms-subnets"
   replication_subnet_group_description = "Subnets for stock pipeline DMS"
 
-  subnet_ids = local.public_subnet_ids
+  subnet_ids = data.terraform_remote_state.vpc.outputs.public_subnet_ids
 
   tags = {
     Name    = "stock-pipeline-dms-subnets"

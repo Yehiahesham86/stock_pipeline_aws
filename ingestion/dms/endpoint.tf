@@ -26,8 +26,8 @@ resource "aws_dms_s3_endpoint" "s3_target" {
   endpoint_id   = "stock-s3-bronze-target"
   endpoint_type = "target"
 
-  bucket_name             = local.bucket_name
-  bucket_folder           = local.bronze_prefix
+  bucket_name             = data.terraform_remote_state.s3.outputs.bronze_bucket_name
+  bucket_folder           = data.terraform_remote_state.s3.outputs.bronze_prefix
   service_access_role_arn = aws_iam_role.dms_s3_access.arn
 
   data_format      = "parquet"

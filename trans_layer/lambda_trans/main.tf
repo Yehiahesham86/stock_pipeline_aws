@@ -43,10 +43,10 @@ resource "aws_lambda_function" "catalog_manager" {
 
   environment {
     variables = {
-      BUCKET_NAME   = var.bucket_name
-      DATABASE_NAME = var.database_name
-      TABLE_NAME    = "stock_prices"
-      S3_PREFIX     = "bronze/"
+      bronze_bucket_name = data.terraform_remote_state.s3_bronze.outputs.bronze_bucket_name
+      DATABASE_NAME      = data.terraform_remote_state.glue_catalog.outputs.bronze_database_name
+      TABLE_NAME         = "stock_prices"
+      S3_PREFIX          = data.terraform_remote_state.s3_bronze.outputs.bronze_prefix
     }
   }
 

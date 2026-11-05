@@ -34,14 +34,14 @@ resource "aws_iam_role_policy" "s3_access" {
         Action = [
           "s3:ListBucket"
         ]
-        Resource = "arn:aws:s3:::${var.bucket_name}"
+        Resource = data.terraform_remote_state.s3_bronze.outputs.bronze_bucket_arn
       },
       {
         Effect = "Allow"
         Action = [
           "s3:GetObject"
         ]
-        Resource = "arn:aws:s3:::${var.bucket_name}/bronze/*"
+        Resource = "${data.terraform_remote_state.s3_bronze.outputs.bronze_bucket_arn}/${data.terraform_remote_state.s3_bronze.outputs.bronze_prefix}*"
       }
     ]
   })

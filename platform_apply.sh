@@ -10,11 +10,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ==========================================
 
 REGION="us-east-1"
-ACCOUNT_ID="765332580934"
-REPOSITORY="stock-bronze-catalog-manager"
 IMAGE_TAG="v1"
 
-ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
 LAMBDA_DIR="trans_layer/lambda_trans"
 
 DOCKER_CONFIG_DIR="/tmp/docker-platform-config"
@@ -23,6 +20,7 @@ DOCKER_CONFIG_DIR="/tmp/docker-platform-config"
 directories=(
     "vpc_config"
     "storage/s3_bronze"
+    "trans_layer/glue_data_catalog"
     "ingestion/dms"
 )
 
@@ -61,6 +59,8 @@ terraform fmt
 terraform apply \
     -target=aws_ecr_repository.lambda \
     -auto-approve
+
+ECR_URI="$(terraform output -raw ecr_repository_url)"
 
 # ==========================================
 # 3. Prepare Docker configuration
@@ -117,20 +117,6 @@ echo "=================================="
 echo "Deploying Lambda infrastructure"
 echo "=================================="
 
-terraform apply -auto-approve
-
-# ==========================================
-# 8. Deploy Glue Data Catalog
-# ==========================================
-
-cd "$ROOT_DIR/trans_layer/glue_data_catalog"
-
-echo "=================================="
-echo "Deploying Glue Data Catalog"
-echo "=================================="
-
-terraform init
-terraform fmt
 terraform apply -auto-approve
 
 # ==========================================

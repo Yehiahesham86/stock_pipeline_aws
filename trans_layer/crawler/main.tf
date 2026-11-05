@@ -7,10 +7,10 @@ provider "aws" {
 resource "aws_glue_crawler" "bronze" {
   name          = var.crawler_name
   role          = aws_iam_role.crawler_role.arn
-  database_name = var.database_name
+  database_name = data.terraform_remote_state.glue_catalog.outputs.bronze_database_name
 
   s3_target {
-    path = "s3://${var.bucket_name}/bronze/"
+    path = "s3://${data.terraform_remote_state.s3_bronze.outputs.bronze_bucket_name}/${data.terraform_remote_state.s3_bronze.outputs.bronze_prefix}"
   }
 
   schema_change_policy {

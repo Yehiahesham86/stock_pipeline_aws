@@ -1,8 +1,8 @@
-output "bucket_name" {
+output "bronze_bucket_name" {
   value = aws_s3_bucket.bronze.bucket
 }
 
-output "bucket_arn" {
+output "bronze_bucket_arn" {
   value = aws_s3_bucket.bronze.arn
 }
 

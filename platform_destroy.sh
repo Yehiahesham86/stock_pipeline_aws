@@ -3,15 +3,11 @@
 set -e
 
 directories=(
+    "trans_layer/lambda_trans"
     "ingestion/dms"
+    "trans_layer/glue_data_catalog"
     "storage/s3_bronze"
     "vpc_config"
-    "trans_layer/glue_data_catalog"
-    "trans_layer/lambda_trans"
-<<<<<<< HEAD
-=======
-    
->>>>>>> refs/remotes/origin/main
 )
 
 for dir in "${directories[@]}"; do

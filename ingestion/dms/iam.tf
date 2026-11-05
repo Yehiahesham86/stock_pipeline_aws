@@ -36,7 +36,7 @@ resource "aws_iam_role_policy" "dms_s3_access" {
             "s3:ListBucket",
             "s3:GetBucketLocation"
           ],
-          "Resource" : "arn:aws:s3:::stock-bronze-unique123"
+          "Resource" : data.terraform_remote_state.s3.outputs.bronze_bucket_arn
         },
         {
           "Sid" : "ObjectAccess",
@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "dms_s3_access" {
             "s3:DeleteObject",
             "s3:AbortMultipartUpload"
           ],
-          "Resource" : "arn:aws:s3:::stock-bronze-unique123/bronze/*"
+          "Resource" : "${data.terraform_remote_state.s3.outputs.bronze_bucket_arn}/${data.terraform_remote_state.s3.outputs.bronze_prefix}*"
         }
       ]
     }

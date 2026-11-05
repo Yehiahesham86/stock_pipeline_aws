@@ -2,7 +2,7 @@
 resource "aws_security_group" "dms" {
   name        = "stock-pipeline-dms-sg"
   description = "Network access for stock pipeline DMS"
-  vpc_id      = local.vpc_id
+  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
 
   egress {
     description = "Outbound connectivity for DMS"

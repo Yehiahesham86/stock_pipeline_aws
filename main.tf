@@ -47,26 +47,7 @@ module "dms" {
   database_password = var.database_password
 }
 
-# ---------- was trans_layer/crawler/ ----------
-module "crawler" {
-  source = "./modules/trans_layer/crawler"
 
-  bronze_bucket_name   = module.s3_bronze.bronze_bucket_name
-  bronze_bucket_arn    = module.s3_bronze.bronze_bucket_arn
-  bronze_prefix        = module.s3_bronze.bronze_prefix
-  bronze_database_name = module.glue_data_catalog.bronze_database_name
-}
-
-# ---------- was trans_layer/glue_etl/ ----------
-module "glue_etl" {
-  source = "./modules/trans_layer/glue_etl"
-
-  bronze_bucket_arn    = module.s3_bronze.bronze_bucket_arn
-  silver_bucket_name   = module.s3_silver.silver_bucket_name
-  silver_bucket_arn    = module.s3_silver.silver_bucket_arn
-  bronze_database_name = module.glue_data_catalog.bronze_database_name
-  silver_database_name = module.glue_data_catalog.silver_database_name
-}
 
 # ---------- was trans_layer/lambda_trans/ ----------
 module "lambda_trans" {
@@ -77,4 +58,5 @@ module "lambda_trans" {
   bronze_bucket_arn    = module.s3_bronze.bronze_bucket_arn
   bronze_prefix        = module.s3_bronze.bronze_prefix
   bronze_database_name = module.glue_data_catalog.bronze_database_name
+
 }

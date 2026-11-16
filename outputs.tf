@@ -8,9 +8,6 @@ output "silver_bucket_name" {
   value = module.s3_silver.silver_bucket_name
 }
 
-output "glue_job_name" {
-  value = module.glue_etl.glue_job_name
-}
 
 # apply.sh reads this to push the Lambda image.
 output "ecr_repository_url" {

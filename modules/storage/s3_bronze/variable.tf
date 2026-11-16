@@ -7,5 +7,5 @@ variable "aws_region" {
 variable "bronze_bucket_name" {
   description = "stock_price_s3_bronze_pipeline"
   type        = string
-  default     = "stock-bronze-unique123"
+  default     = "stock-bronze-unique12345"
 }

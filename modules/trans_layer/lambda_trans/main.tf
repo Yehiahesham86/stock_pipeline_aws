@@ -1,22 +1,9 @@
-resource "aws_ecr_repository" "lambda" {
-  name                 = "stock-bronze-catalog-manager"
-  image_tag_mutability = "MUTABLE"
-  force_delete         = true
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  encryption_configuration {
-    encryption_type = "AES256"
-  }
-}
-
 resource "aws_lambda_function" "catalog_manager" {
   function_name = var.function_name
 
   package_type = "Image"
 
-  image_uri = "${aws_ecr_repository.lambda.repository_url}:v1"
+  image_uri = "${aws_ecr_repository.catalog_manager.repository_url}@${docker_registry_image.catalog_manager.sha256_digest}"
 
   role = aws_iam_role.lambda_role.arn
 

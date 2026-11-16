@@ -1,0 +1,75 @@
+variable "aws_region" {
+  description = "AWS region for the DMS resources"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "replication_instance_class" {
+  description = "DMS replication instance size"
+  type        = string
+  default     = "dms.t3.small"
+}
+
+variable "allocated_storage" {
+  description = "DMS replication instance storage in GB"
+  type        = number
+  default     = 5
+}
+
+
+variable "source_host" {
+  description = "PostgreSQL hostname exposed through Pinggy"
+  type        = string
+  default     = "tqzzr-217-53-158-244.run.pinggy-free.link"
+}
+
+variable "source_port" {
+  description = "PostgreSQL port exposed through Pinggy"
+  type        = number
+  default     = 44841
+}
+
+variable "database_name" {
+  description = "PostgreSQL database name"
+  type        = string
+  default     = "stock_market"
+}
+
+variable "database_username" {
+  description = "PostgreSQL username"
+  type        = string
+  default     = "admin"
+}
+
+variable "database_password" {
+  description = "PostgreSQL password"
+  type        = string
+  sensitive   = true
+  default     = "y-f-yehia-admin"
+}
+# ---------- inputs wired from the root module ----------
+
+variable "vpc_id" {
+  description = "VPC ID from module.vpc_config"
+  type        = string
+}
+
+variable "public_subnet_ids" {
+  description = "Public subnet IDs from module.vpc_config"
+  type        = list(string)
+}
+
+variable "bronze_bucket_name" {
+  description = "Bronze bucket name from module.s3_bronze"
+  type        = string
+}
+
+variable "bronze_bucket_arn" {
+  description = "Bronze bucket ARN from module.s3_bronze"
+  type        = string
+}
+
+variable "bronze_prefix" {
+  description = "Bronze prefix from module.s3_bronze"
+  type        = string
+}

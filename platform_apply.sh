@@ -20,6 +20,7 @@ DOCKER_CONFIG_DIR="/tmp/docker-platform-config"
 directories=(
     "vpc_config"
     "storage/s3_bronze"
+    "storage/s3_silver"
     "trans_layer/glue_data_catalog"
     "ingestion/dms"
 )

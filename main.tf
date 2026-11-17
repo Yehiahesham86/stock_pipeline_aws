@@ -50,6 +50,9 @@ module "dms" {
   raw_bucket_arn  = module.s3_raw.raw_bucket_arn
   raw_prefix      = module.s3_raw.raw_prefix
 
+  # local tutoring Postgres, reached through the Pinggy tunnel
+  source_host       = var.source_host
+  source_port       = var.source_port
   database_password = var.database_password
 }
 

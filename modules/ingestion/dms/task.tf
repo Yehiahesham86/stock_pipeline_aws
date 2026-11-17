@@ -19,11 +19,12 @@ resource "aws_dms_replication_task" "stock" {
       {
         "rule-type" = "selection"
         "rule-id"   = "1"
-        "rule-name" = "include-stock-prices"
+        "rule-name" = "include-app-tables"
 
+        # every table in the app schema: teachers, students, class_bookings, payments, referrals
         "object-locator" = {
-          "schema-name" = "public"
-          "table-name"  = "stock_prices"
+          "schema-name" = var.source_schema
+          "table-name"  = "%"
         }
 
         "rule-action" = "include"
@@ -36,8 +37,8 @@ resource "aws_dms_replication_task" "stock" {
         "rule-target" = "column"
 
         "object-locator" = {
-          "schema-name" = "public"
-          "table-name"  = "stock_prices"
+          "schema-name" = var.source_schema
+          "table-name"  = "%"
         }
 
         "rule-action" = "add-column"

@@ -4,5 +4,8 @@ terraform-provider-*
 *.tfstate.backup
 *.backup
 *.lock.hcl
+# saved plans contain variable values (DB password) in plain text
+tfplan
+*.tfplan
 # built by archive_file
 lambda_package.zip

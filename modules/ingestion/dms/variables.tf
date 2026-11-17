@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "replication_instance_class" {
   description = "DMS replication instance size"
   type        = string
-  default     = "dms.t3.small"
+  default     = "dms.t3.micro"
 }
 
 variable "allocated_storage" {
@@ -17,35 +17,40 @@ variable "allocated_storage" {
 }
 
 
+# No defaults: the Pinggy address changes every time the tunnel starts
 variable "source_host" {
-  description = "PostgreSQL hostname exposed through Pinggy"
+  description = "PostgreSQL hostname exposed through Pinggy (from the root module)"
   type        = string
-  default     = "tqzzr-217-53-158-244.run.pinggy-free.link"
 }
 
 variable "source_port" {
-  description = "PostgreSQL port exposed through Pinggy"
+  description = "PostgreSQL port exposed through Pinggy (from the root module)"
   type        = number
-  default     = 44841
 }
 
 variable "database_name" {
-  description = "PostgreSQL database name"
+  description = "PostgreSQL database name (POSTGRES_DB in source .env)"
   type        = string
-  default     = "stock_market"
+  default     = "tutoring"
 }
 
 variable "database_username" {
-  description = "PostgreSQL username"
+  description = "PostgreSQL username (POSTGRES_USER in source .env)"
   type        = string
-  default     = "admin"
+  default     = "tutoring_admin"
 }
 
+variable "source_schema" {
+  description = "PostgreSQL schema DMS replicates (all tables in it)"
+  type        = string
+  default     = "app"
+}
+
+# No default: never a secret in code
 variable "database_password" {
   description = "PostgreSQL password"
   type        = string
   sensitive   = true
-  default     = "y-f-yehia-admin"
 }
 # ---------- inputs wired from the root module ----------
 

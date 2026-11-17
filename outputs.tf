@@ -13,3 +13,7 @@ output "silver_bucket_name" {
 output "ecr_repository_url" {
   value = module.lambda_trans.ecr_repository_url
 }
+
+output "raw_event_rule_arn" {
+  value = module.ingestion_orchestration.raw_event_rule_arn
+}

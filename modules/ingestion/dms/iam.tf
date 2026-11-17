@@ -36,7 +36,7 @@ resource "aws_iam_role_policy" "dms_s3_access" {
             "s3:ListBucket",
             "s3:GetBucketLocation"
           ],
-          "Resource" : var.bronze_bucket_arn
+          "Resource" : var.raw_bucket_arn
         },
         {
           "Sid" : "ObjectAccess",
@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "dms_s3_access" {
             "s3:DeleteObject",
             "s3:AbortMultipartUpload"
           ],
-          "Resource" : "${var.bronze_bucket_arn}/${var.bronze_prefix}*"
+          "Resource" : "${var.raw_bucket_arn}/${var.raw_prefix}*"
         }
       ]
     }

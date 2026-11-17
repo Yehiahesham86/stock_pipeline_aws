@@ -59,17 +59,20 @@ variable "public_subnet_ids" {
   type        = list(string)
 }
 
-variable "bronze_bucket_name" {
-  description = "Bronze bucket name from module.s3_bronze"
+
+
+
+variable "raw_prefix" {
+  description = "Raw prefix from module.s3_raw"
   type        = string
 }
 
-variable "bronze_bucket_arn" {
-  description = "Bronze bucket ARN from module.s3_bronze"
-  type        = string
+variable "raw_bucket_name" {
+  description = "raw bucket name from module.s3_raw"
+  type = string
 }
 
-variable "bronze_prefix" {
-  description = "Bronze prefix from module.s3_bronze"
-  type        = string
+variable "raw_bucket_arn" {
+  description = "raw bucket ARN from module.s3_raw"
+  type = string
 }

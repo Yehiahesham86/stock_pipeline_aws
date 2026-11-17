@@ -23,11 +23,11 @@ resource "aws_dms_endpoint" "postgres_source" {
 # S3 Target Endpoint
 
 resource "aws_dms_s3_endpoint" "s3_target" {
-  endpoint_id   = "stock-s3-bronze-target"
+  endpoint_id   = "stock-s3-raw-target"
   endpoint_type = "target"
 
-  bucket_name             = var.bronze_bucket_name
-  bucket_folder           = var.bronze_prefix
+  bucket_name             = var.raw_bucket_name
+  bucket_folder           = var.raw_prefix
   service_access_role_arn = aws_iam_role.dms_s3_access.arn
 
   data_format      = "parquet"

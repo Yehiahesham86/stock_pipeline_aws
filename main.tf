@@ -16,6 +16,12 @@ module "vpc_config" {
   source = "./modules/vpc_config"
 }
 
+# ---------- was storage/s3_raw/ ----------
+module "s3_raw" {
+  source = "./modules/storage/s3_raw"
+}
+
+
 # ---------- was storage/s3_bronze/ ----------
 module "s3_bronze" {
   source = "./modules/storage/s3_bronze"
@@ -40,9 +46,9 @@ module "dms" {
   public_subnet_ids = module.vpc_config.public_subnet_ids
 
   # BEFORE: data.terraform_remote_state.s3.outputs.bronze_...
-  bronze_bucket_name = module.s3_bronze.bronze_bucket_name
-  bronze_bucket_arn  = module.s3_bronze.bronze_bucket_arn
-  bronze_prefix      = module.s3_bronze.bronze_prefix
+  raw_bucket_name = module.s3_raw.raw_bucket_name
+  raw_bucket_arn  = module.s3_raw.raw_bucket_arn
+  raw_prefix  = module.s3_raw.raw_prefix
 
   database_password = var.database_password
 }
@@ -59,4 +65,19 @@ module "lambda_trans" {
   bronze_prefix        = module.s3_bronze.bronze_prefix
   bronze_database_name = module.glue_data_catalog.bronze_database_name
 
+}
+
+
+module "athena" {
+  source = "./modules/trans_layer/athena"
+
+  bronze_bucket_name = module.s3_bronze.bronze_bucket_name
+}
+
+module "ingestion_orchestration" {
+  source = "./modules/trans_layer/ingestion_orchestration"
+
+  raw_bucket_name = module.s3_raw.raw_bucket_name
+  raw_bucket_arn  = module.s3_raw.raw_bucket_arn
+  raw_prefix    = module.s3_raw.raw_prefix
 }

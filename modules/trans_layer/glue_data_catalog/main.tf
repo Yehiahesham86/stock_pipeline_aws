@@ -1,4 +1,12 @@
 # ==========================================
+# Raw Database (external table over the DMS parquet files)
+# ==========================================
+
+resource "aws_glue_catalog_database" "raw" {
+  name = "stock_raw"
+}
+
+# ==========================================
 # Bronze Database
 # ==========================================
 

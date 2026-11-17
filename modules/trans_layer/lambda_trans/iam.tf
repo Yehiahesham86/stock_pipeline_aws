@@ -33,7 +33,7 @@ resource "aws_iam_role_policy" "s3_read" {
           "s3:ListBucket"
         ]
 
-        Resource = var.bronze_bucket_arn
+        Resource = var.raw_bucket_arn
       },
       {
         Effect = "Allow"
@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "s3_read" {
           "s3:GetObject"
         ]
 
-        Resource = "${var.bronze_bucket_arn}/${var.bronze_prefix}*"
+        Resource = "${var.raw_bucket_arn}/${var.raw_table_prefix}*"
       }
     ]
   })
@@ -75,8 +75,8 @@ resource "aws_iam_role_policy" "glue_catalog_access" {
 
         Resource = [
           "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
-          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.bronze_database_name}",
-          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.bronze_database_name}/*"
+          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:database/${var.raw_database_name}",
+          "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${var.raw_database_name}/*"
         ]
       }
     ]

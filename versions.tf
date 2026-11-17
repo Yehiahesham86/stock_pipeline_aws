@@ -11,5 +11,9 @@ terraform {
     docker = {
       source = "kreuzwerker/docker"
     }
+
+    archive = {
+      source = "hashicorp/archive"
+    }
   }
 }

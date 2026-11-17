@@ -44,8 +44,3 @@ resource "aws_s3_object" "raw_folder" {
   bucket = aws_s3_bucket.raw.id
   key    = "raw/"
 }
-
-resource "aws_s3_bucket_notification" "raw_eventbridge" {
-  bucket      = aws_s3_bucket.raw.id
-  eventbridge = true
-}

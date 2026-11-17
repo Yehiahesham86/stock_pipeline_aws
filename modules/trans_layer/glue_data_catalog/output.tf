@@ -1,3 +1,7 @@
+output "raw_database_name" {
+  value = aws_glue_catalog_database.raw.name
+}
+
 output "bronze_database_name" {
   value = aws_glue_catalog_database.bronze.name
 }

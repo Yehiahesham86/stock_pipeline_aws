@@ -26,13 +26,18 @@ resource "aws_dms_s3_endpoint" "s3_target" {
   endpoint_id   = "stock-s3-raw-target"
   endpoint_type = "target"
 
-  bucket_name             = var.raw_bucket_name
-  bucket_folder           = var.raw_prefix
+  bucket_name = var.raw_bucket_name
+  # "raw/" -> "raw": DMS adds its own "/" before schema/table
+  bucket_folder           = trimsuffix(var.raw_prefix, "/")
   service_access_role_arn = aws_iam_role.dms_s3_access.arn
 
   data_format      = "parquet"
   compression_type = "GZIP"
   add_column_name  = true
+
+  # CDC metadata columns in every file (Raw + Bronze tables expect them)
+  include_op_for_full_load = true     # Op = I for full-load rows too
+  timestamp_column_name    = "dms_ts" # source commit time
 
   date_partition_enabled   = true
   date_partition_sequence  = "YYYYMMDD"

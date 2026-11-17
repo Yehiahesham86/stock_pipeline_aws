@@ -16,13 +16,13 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 s3 = boto3.client("s3", region_name=AWS_REGION)
 glue = boto3.client("glue", region_name=AWS_REGION)
 
-bronze_bucket_name = os.environ["bronze_bucket_name"]
+RAW_BUCKET_NAME = os.environ["RAW_BUCKET_NAME"]
 DATABASE_NAME = os.environ["DATABASE_NAME"]
 TABLE_NAME = os.environ.get("TABLE_NAME", "stock_prices")
 
 S3_PREFIX = os.environ.get(
     "S3_PREFIX",
-    "bronze/public/stock_prices/"
+    "raw/public/stock_prices/"
 )
 
 
@@ -32,7 +32,7 @@ def get_parquet_file():
     paginator = s3.get_paginator("list_objects_v2")
 
     for page in paginator.paginate(
-        Bucket=bronze_bucket_name,
+        Bucket=RAW_BUCKET_NAME,
         Prefix=S3_PREFIX
     ):
         for obj in page.get("Contents", []):
@@ -49,7 +49,7 @@ def discover_schema(key):
 
     s3_filesystem = fs.S3FileSystem(region=AWS_REGION)
 
-    parquet_path = f"{bronze_bucket_name}/{key}"
+    parquet_path = f"{RAW_BUCKET_NAME}/{key}"
 
     parquet_file = pq.ParquetFile(
         parquet_path,
@@ -117,7 +117,7 @@ def create_or_update_table(columns):
         },
         "StorageDescriptor": {
             "Columns": columns,
-            "Location": f"s3://{bronze_bucket_name}/{S3_PREFIX}",
+            "Location": f"s3://{RAW_BUCKET_NAME}/{S3_PREFIX}",
             "InputFormat": (
                 "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
             ),
@@ -160,7 +160,7 @@ def create_or_update_table(columns):
 
 def lambda_handler(event, context):
 
-    logger.info("Starting Bronze catalog registration")
+    logger.info("Starting Raw catalog registration")
 
     key = get_parquet_file()
 

@@ -14,6 +14,10 @@ output "ecr_repository_url" {
   value = module.lambda_trans.ecr_repository_url
 }
 
-output "raw_event_rule_arn" {
-  value = module.ingestion_orchestration.raw_event_rule_arn
+output "raw_events_queue_url" {
+  value = module.s3_athena_trigger.raw_events_queue_url
+}
+
+output "raw_events_dlq_url" {
+  value = module.s3_athena_trigger.raw_events_dlq_url
 }

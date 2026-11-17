@@ -48,7 +48,7 @@ module "dms" {
   # BEFORE: data.terraform_remote_state.s3.outputs.bronze_...
   raw_bucket_name = module.s3_raw.raw_bucket_name
   raw_bucket_arn  = module.s3_raw.raw_bucket_arn
-  raw_prefix  = module.s3_raw.raw_prefix
+  raw_prefix      = module.s3_raw.raw_prefix
 
   database_password = var.database_password
 }
@@ -59,12 +59,13 @@ module "dms" {
 module "lambda_trans" {
   source = "./modules/trans_layer/lambda_trans"
 
-  aws_region           = var.aws_region
-  bronze_bucket_name   = module.s3_bronze.bronze_bucket_name
-  bronze_bucket_arn    = module.s3_bronze.bronze_bucket_arn
-  bronze_prefix        = module.s3_bronze.bronze_prefix
-  bronze_database_name = module.glue_data_catalog.bronze_database_name
-
+  # catalogs the Raw table from a real DMS parquet file (instead of a crawler)
+  aws_region        = var.aws_region
+  raw_bucket_name   = module.s3_raw.raw_bucket_name
+  raw_bucket_arn    = module.s3_raw.raw_bucket_arn
+  raw_table_prefix  = module.athena.raw_table_prefix
+  raw_database_name = module.glue_data_catalog.raw_database_name
+  table_name        = module.athena.table_name
 }
 
 
@@ -72,12 +73,34 @@ module "athena" {
   source = "./modules/trans_layer/athena"
 
   bronze_bucket_name = module.s3_bronze.bronze_bucket_name
+
+  # for the Raw / Bronze table DDL in sql/
+  raw_bucket_name      = module.s3_raw.raw_bucket_name
+  raw_prefix           = module.s3_raw.raw_prefix
+  raw_database_name    = module.glue_data_catalog.raw_database_name
+  bronze_database_name = module.glue_data_catalog.bronze_database_name
 }
 
-module "ingestion_orchestration" {
-  source = "./modules/trans_layer/ingestion_orchestration"
+# ---------- Raw .parquet created -> SQS -> Lambda -> Athena (Raw -> Bronze) ----------
+module "s3_athena_trigger" {
+  source = "./modules/ingestion/s3_athena_trigger"
+
+  aws_region = var.aws_region
 
   raw_bucket_name = module.s3_raw.raw_bucket_name
   raw_bucket_arn  = module.s3_raw.raw_bucket_arn
-  raw_prefix    = module.s3_raw.raw_prefix
+  raw_prefix      = module.s3_raw.raw_prefix
+
+  bronze_bucket_arn = module.s3_bronze.bronze_bucket_arn
+
+  athena_workgroup_name = module.athena.athena_workgroup_name
+  athena_workgroup_arn  = module.athena.athena_workgroup_arn
+
+  raw_database_name    = module.glue_data_catalog.raw_database_name
+  bronze_database_name = module.glue_data_catalog.bronze_database_name
+
+  # Raw + Bronze tables are created through Athena on apply
+  table_name       = module.athena.table_name
+  raw_table_ddl    = module.athena.raw_table_ddl
+  bronze_table_ddl = module.athena.bronze_table_ddl
 }

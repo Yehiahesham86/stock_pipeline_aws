@@ -14,10 +14,10 @@ resource "aws_lambda_function" "catalog_manager" {
 
   environment {
     variables = {
-      bronze_bucket_name = var.bronze_bucket_name
-      DATABASE_NAME      = var.bronze_database_name
-      TABLE_NAME         = "stock_prices"
-      S3_PREFIX          = var.bronze_prefix
+      RAW_BUCKET_NAME = var.raw_bucket_name
+      DATABASE_NAME   = var.raw_database_name
+      TABLE_NAME      = var.table_name
+      S3_PREFIX       = var.raw_table_prefix
     }
   }
 

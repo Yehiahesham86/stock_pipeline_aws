@@ -69,10 +69,10 @@ variable "raw_prefix" {
 
 variable "raw_bucket_name" {
   description = "raw bucket name from module.s3_raw"
-  type = string
+  type        = string
 }
 
 variable "raw_bucket_arn" {
   description = "raw bucket ARN from module.s3_raw"
-  type = string
+  type        = string
 }

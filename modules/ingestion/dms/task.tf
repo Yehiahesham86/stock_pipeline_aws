@@ -27,6 +27,27 @@ resource "aws_dms_replication_task" "stock" {
         }
 
         "rule-action" = "include"
+      },
+      {
+        # change order inside one commit (tie-break when dms_ts is equal)
+        "rule-type"   = "transformation"
+        "rule-id"     = "2"
+        "rule-name"   = "add-change-seq"
+        "rule-target" = "column"
+
+        "object-locator" = {
+          "schema-name" = "public"
+          "table-name"  = "stock_prices"
+        }
+
+        "rule-action" = "add-column"
+        "value"       = "dms_change_seq"
+        "expression"  = "$AR_H_CHANGE_SEQ"
+
+        "data-type" = {
+          "type"   = "string"
+          "length" = 50
+        }
       }
     ]
   })

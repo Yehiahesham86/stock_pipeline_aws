@@ -21,6 +21,11 @@ resource "docker_image" "catalog_manager" {
     platform   = "linux/amd64"
   }
 
+  # rebuild when any file in catalog_manager/ changes (app.py, Dockerfile, ...)
+  triggers = {
+    src_sha1 = sha1(join("", [for f in fileset("${path.module}/catalog_manager", "**") : filesha1("${path.module}/catalog_manager/${f}")]))
+  }
+
   keep_locally = true
 }
 

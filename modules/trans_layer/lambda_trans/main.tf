@@ -7,7 +7,8 @@ resource "aws_lambda_function" "catalog_manager" {
 
   role = aws_iam_role.lambda_role.arn
 
-  timeout     = 300
+  # reads one parquet footer per call; the trigger Lambda waits for it
+  timeout     = 60
   memory_size = 1024
 
   architectures = ["x86_64"]
@@ -16,8 +17,9 @@ resource "aws_lambda_function" "catalog_manager" {
     variables = {
       RAW_BUCKET_NAME = var.raw_bucket_name
       DATABASE_NAME   = var.raw_database_name
-      TABLE_NAME      = var.table_name
-      S3_PREFIX       = var.raw_table_prefix
+      RAW_PREFIX      = var.raw_prefix
+      SOURCE_SCHEMA   = var.source_schema
+      TABLES          = join(",", var.table_names)
     }
   }
 

@@ -64,6 +64,7 @@ resource "aws_iam_role_policy" "athena" {
       Action = [
         "athena:StartQueryExecution",
         "athena:GetQueryExecution",
+        "athena:GetQueryResults",
         "athena:GetWorkGroup"
       ]
 
@@ -149,5 +150,21 @@ resource "aws_iam_role_policy" "s3" {
         Resource = "${var.bronze_bucket_arn}/*"
       }
     ]
+  })
+}
+
+# Call catalog_manager (creates / updates the Raw table) before each INSERT
+resource "aws_iam_role_policy" "invoke_catalog_manager" {
+  name = "stock-raw-athena-trigger-invoke-catalog"
+  role = aws_iam_role.athena_trigger.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "lambda:InvokeFunction"
+      Resource = var.catalog_manager_function_arn
+    }]
   })
 }

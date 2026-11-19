@@ -1,3 +1,21 @@
+"""catalog_manager: owns the Raw Glue tables (instead of a Glue Crawler).
+
+Reads the schema of a real DMS parquet file (footer only) and creates or
+updates <raw_db>.<table> in the Glue Data Catalog.
+
+Two ways to call it:
+
+1. From the trigger Lambda, once per new Raw file (synchronous):
+       {"table": "students", "key": "raw/app/students/2026/11/19/x.parquet"}
+   -> schema of THAT file (it is the newest one)
+   -> returns {"table", "action", "source_file", "columns"}
+
+2. By hand / backfill, empty event {}:
+   -> for every table: schema of the NEWEST parquet file (by LastModified)
+   -> returns {"results": [...]}
+
+Idempotent: if the Glue columns already match the file, nothing is written.
+"""
 
 import os
 import json
@@ -12,24 +30,17 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # --------------------------------------------------
-# CONFIGURATION
+# CONFIGURATION (all set by Terraform, no defaults on purpose:
+# a missing variable fails at cold start instead of using a wrong value)
 # --------------------------------------------------
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 RAW_BUCKET_NAME = os.environ["RAW_BUCKET_NAME"]
-DATABASE_NAME = os.environ.get("DATABASE_NAME", "stock_raw")
-
-SOURCE_SCHEMA = os.environ.get("SOURCE_SCHEMA", "app")
-RAW_PREFIX = os.environ.get("RAW_PREFIX", "raw/")
-
-TABLES = [
-    "teachers",
-    "students",
-    "class_bookings",
-    "payments",
-    "referrals"
-]
+DATABASE_NAME = os.environ["DATABASE_NAME"]
+RAW_PREFIX = os.environ["RAW_PREFIX"]          # e.g. raw/
+SOURCE_SCHEMA = os.environ["SOURCE_SCHEMA"]    # e.g. app
+TABLES = [t.strip() for t in os.environ["TABLES"].split(",") if t.strip()]
 
 s3 = boto3.client("s3", region_name=AWS_REGION)
 glue = boto3.client("glue", region_name=AWS_REGION)
@@ -37,41 +48,47 @@ glue = boto3.client("glue", region_name=AWS_REGION)
 s3_filesystem = fs.S3FileSystem(region=AWS_REGION)
 
 
+def table_prefix(table):
+    return f"{RAW_PREFIX}{SOURCE_SCHEMA}/{table}/"
+
+
 # --------------------------------------------------
-# FIND PARQUET FILE
+# FIND THE NEWEST PARQUET FILE
 # --------------------------------------------------
 
-def get_parquet_file(table):
+def get_latest_parquet_file(table):
     """
-    Find the first Parquet file belonging to a table.
-    """
+    Newest Parquet file of a table, by LastModified.
 
-    prefix = f"{RAW_PREFIX}{SOURCE_SCHEMA}/{table}/"
+    NOT the last key in the listing: S3 lists keys alphabetically, and
+    'LOAD00000001.parquet' sorts after '2026/11/19/...parquet' ('L' > '2'),
+    so the last key would be the old full-load file.
+    """
 
     paginator = s3.get_paginator("list_objects_v2")
 
+    latest = None
+
     for page in paginator.paginate(
         Bucket=RAW_BUCKET_NAME,
-        Prefix=prefix
+        Prefix=table_prefix(table)
     ):
 
         for obj in page.get("Contents", []):
 
-            key = obj["Key"]
+            if not obj["Key"].lower().endswith(".parquet"):
+                continue
 
-            if key.lower().endswith(".parquet"):
+            if latest is None or obj["LastModified"] > latest["LastModified"]:
+                latest = obj
 
-                logger.info(
-                    "Found Parquet file for %s: %s",
-                    table,
-                    key
-                )
+    if latest is None:
+        logger.warning("No Parquet files found for table: %s", table)
+        return None
 
-                return key
+    logger.info("Newest Parquet file for %s: %s", table, latest["Key"])
 
-    logger.warning("No Parquet files found for table: %s", table)
-
-    return None
+    return latest["Key"]
 
 
 # --------------------------------------------------
@@ -80,7 +97,8 @@ def get_parquet_file(table):
 
 def discover_schema(key):
     """
-    Read the schema from an actual Parquet file in S3.
+    Read the schema from an actual Parquet file in S3 (footer only,
+    not the data).
     """
 
     parquet_path = f"{RAW_BUCKET_NAME}/{key}"
@@ -147,7 +165,9 @@ def build_columns(schema):
     for field in schema:
 
         columns.append({
-            "Name": field.name,
+            # lowercase: DMS writes "Op", Glue/Athena names are lowercase,
+            # and the trigger compares Raw vs Bronze columns by name
+            "Name": field.name.lower(),
             "Type": convert_type(field.type)
         })
 
@@ -160,10 +180,7 @@ def build_columns(schema):
 
 def create_or_update_table(table, columns):
 
-    table_location = (
-        f"s3://{RAW_BUCKET_NAME}/"
-        f"{RAW_PREFIX}{SOURCE_SCHEMA}/{table}/"
-    )
+    table_location = f"s3://{RAW_BUCKET_NAME}/{table_prefix(table)}"
 
     table_input = {
 
@@ -208,17 +225,35 @@ def create_or_update_table(table, columns):
 
     try:
 
-        glue.get_table(
+        existing = glue.get_table(
             DatabaseName=DATABASE_NAME,
             Name=table
         )
+
+        existing_columns = [
+            {"Name": c["Name"], "Type": c["Type"]}
+            for c in existing["Table"]["StorageDescriptor"]["Columns"]
+        ]
+
+        # called once per file: don't write a new Glue table version
+        # when nothing changed
+        if existing_columns == columns:
+
+            logger.info("Glue table unchanged: %s", table)
+
+            return "unchanged"
 
         glue.update_table(
             DatabaseName=DATABASE_NAME,
             TableInput=table_input
         )
 
-        logger.info("Updated Glue table: %s", table)
+        logger.info(
+            "Updated Glue table %s: %s -> %s",
+            table,
+            existing_columns,
+            columns
+        )
 
         action = "updated"
 
@@ -237,7 +272,35 @@ def create_or_update_table(table, columns):
 
 
 # --------------------------------------------------
-# REGISTER ALL RAW TABLES
+# REGISTER ONE TABLE FROM ONE FILE
+# --------------------------------------------------
+
+def register_table(table, key):
+
+    if table not in TABLES:
+        raise ValueError(f"Unknown table {table!r}, expected one of {TABLES}")
+
+    if not key.startswith(table_prefix(table)):
+        raise ValueError(f"Key {key!r} is not under {table_prefix(table)!r}")
+
+    schema = discover_schema(key)
+
+    logger.info("Discovered schema for %s: %s", table, schema)
+
+    columns = build_columns(schema)
+
+    action = create_or_update_table(table, columns)
+
+    return {
+        "table": table,
+        "action": action,
+        "source_file": key,
+        "columns": columns
+    }
+
+
+# --------------------------------------------------
+# REGISTER ALL RAW TABLES (manual / backfill)
 # --------------------------------------------------
 
 def register_all_tables():
@@ -248,43 +311,19 @@ def register_all_tables():
 
         logger.info("Processing table: %s", table)
 
-        key = get_parquet_file(table)
+        key = get_latest_parquet_file(table)
 
         if not key:
 
             results.append({
                 "table": table,
-                "status": "skipped",
+                "action": "skipped",
                 "reason": "No Parquet files found"
             })
 
             continue
 
-        schema = discover_schema(key)
-
-        logger.info(
-            "Discovered schema for %s: %s",
-            table,
-            schema
-        )
-
-        columns = build_columns(schema)
-
-        action = create_or_update_table(
-            table,
-            columns
-        )
-
-        results.append({
-
-            "table": table,
-
-            "status": action,
-
-            "source_file": key,
-
-            "columns": columns
-        })
+        results.append(register_table(table, key))
 
     return results
 
@@ -295,41 +334,15 @@ def register_all_tables():
 
 def lambda_handler(event, context):
 
-    logger.info("Starting Raw Glue Catalog registration")
+    logger.info("Event: %s", json.dumps(event, default=str))
 
-    logger.info("Region: %s", AWS_REGION)
-    logger.info("Raw bucket: %s", RAW_BUCKET_NAME)
-    logger.info("Glue database: %s", DATABASE_NAME)
+    # 1. called by the trigger Lambda for one new file
+    if event.get("table") and event.get("key"):
+        return register_table(event["table"], event["key"])
 
+    # 2. manual run: newest file of every table
     results = register_all_tables()
-
-    successful = [
-        item for item in results
-        if item["status"] in ["created", "updated"]
-    ]
-
-    skipped = [
-        item for item in results
-        if item["status"] == "skipped"
-    ]
 
     logger.info("Registration results: %s", results)
 
-    return {
-
-        "statusCode": 200,
-
-        "body": json.dumps({
-
-            "message": "Raw Glue registration completed",
-
-            "database": DATABASE_NAME,
-
-            "registered_tables": len(successful),
-
-            "skipped_tables": len(skipped),
-
-            "results": results
-
-        }, default=str)
-    }
+    return {"database": DATABASE_NAME, "results": results}

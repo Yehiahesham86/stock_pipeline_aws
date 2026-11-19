@@ -1,14 +1,17 @@
 # ==========================================
-# Tutoring tables: Raw (external, DMS parquet) + Bronze (Iceberg), one each.
+# Tutoring tables: Bronze Iceberg DDL, one per table.
+# Raw tables are NOT created here: catalog_manager owns them (reads the real
+# schema of the newest DMS parquet file).
 # Columns copied from source-stock-data-pipeline/sql/01_schema.sql.
 #
-# Raw types = what DMS writes to parquet (checked with pyarrow 2026-11-17):
+# Types = what DMS writes to parquet (checked with pyarrow 2026-11-17):
 #   BIGINT -> bigint, SMALLINT -> smallint, NUMERIC(p,s) -> decimal(p,s),
 #   TIMESTAMPTZ -> timestamp (UTC), TEXT / CHAR(n) -> string
-# Bronze types = same, except smallint -> int (Iceberg has no smallint).
+# Bronze: smallint -> int (Iceberg has no smallint).
 #
 # CREATE ... IF NOT EXISTS: editing a column here does NOT alter an existing
-# table. Drop the table first (or ALTER TABLE) after a schema change.
+# table. New source columns are added at runtime by the trigger Lambda
+# (ALTER TABLE ADD COLUMNS); this list is only the starting schema.
 # ==========================================
 
 locals {
@@ -67,16 +70,6 @@ locals {
       ["updated_at", "timestamp"],
     ]
   }
-
-  raw_ddl = [
-    for table, columns in local.tables :
-    templatefile("${path.module}/sql/create_raw_table.sql", {
-      raw_database = var.raw_database_name
-      table        = table
-      columns      = join(",\n", [for c in columns : "    ${c[0]} ${c[1]}"])
-      raw_location = "s3://${var.raw_bucket_name}/${var.raw_prefix}${var.source_schema}/${table}/"
-    })
-  ]
 
   bronze_ddl = [
     for table, columns in local.tables :

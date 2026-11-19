@@ -62,13 +62,14 @@ module "dms" {
 module "lambda_trans" {
   source = "./modules/trans_layer/lambda_trans"
 
-  # catalogs the Raw table from a real DMS parquet file (instead of a crawler)
+  # owns the Raw tables: schema from a real DMS parquet file (instead of a crawler)
   aws_region        = var.aws_region
   raw_bucket_name   = module.s3_raw.raw_bucket_name
   raw_bucket_arn    = module.s3_raw.raw_bucket_arn
-  raw_table_prefix  = module.athena.raw_table_prefix
+  raw_prefix        = module.s3_raw.raw_prefix
+  source_schema     = module.athena.source_schema
   raw_database_name = module.glue_data_catalog.raw_database_name
-  table_name        = module.athena.table_name
+  table_names       = module.athena.table_names
 }
 
 
@@ -77,10 +78,7 @@ module "athena" {
 
   bronze_bucket_name = module.s3_bronze.bronze_bucket_name
 
-  # for the Raw / Bronze table DDL in sql/
-  raw_bucket_name      = module.s3_raw.raw_bucket_name
-  raw_prefix           = module.s3_raw.raw_prefix
-  raw_database_name    = module.glue_data_catalog.raw_database_name
+  # for the Bronze table DDL in sql/ (Raw tables: catalog_manager)
   bronze_database_name = module.glue_data_catalog.bronze_database_name
 }
 
@@ -102,8 +100,12 @@ module "s3_athena_trigger" {
   raw_database_name    = module.glue_data_catalog.raw_database_name
   bronze_database_name = module.glue_data_catalog.bronze_database_name
 
-  # Raw + Bronze tables are created through Athena on apply
-  table_name       = module.athena.table_name
-  raw_table_ddl    = module.athena.raw_table_ddl
+  # Bronze tables are created through Athena on apply
+  table_names      = module.athena.table_names
+  source_schema    = module.athena.source_schema
   bronze_table_ddl = module.athena.bronze_table_ddl
+
+  # called per file to create / update the Raw table first
+  catalog_manager_function_name = module.lambda_trans.lambda_function_name
+  catalog_manager_function_arn  = module.lambda_trans.lambda_function_arn
 }

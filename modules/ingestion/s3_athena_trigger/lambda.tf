@@ -1,5 +1,6 @@
 # ==========================================
-# Lambda: SQS message -> Athena INSERT INTO Bronze
+# Lambda: SQS message -> catalog_manager (Raw table) -> Athena INSERT INTO Bronze
+# This is the function SQS triggers; it calls catalog_manager itself.
 # ==========================================
 
 data "archive_file" "athena_trigger" {
@@ -28,11 +29,13 @@ resource "aws_lambda_function" "athena_trigger" {
 
   environment {
     variables = {
-      ATHENA_WORKGROUP = var.athena_workgroup_name
-      RAW_DATABASE     = var.raw_database_name
-      RAW_TABLE        = var.table_name
-      BRONZE_DATABASE  = var.bronze_database_name
-      BRONZE_TABLE     = var.table_name
+      ATHENA_WORKGROUP         = var.athena_workgroup_name
+      RAW_DATABASE             = var.raw_database_name
+      BRONZE_DATABASE          = var.bronze_database_name
+      RAW_PREFIX               = var.raw_prefix
+      SOURCE_SCHEMA            = var.source_schema
+      TABLES                   = join(",", var.table_names)
+      CATALOG_MANAGER_FUNCTION = var.catalog_manager_function_name
     }
   }
 
@@ -43,19 +46,17 @@ resource "aws_lambda_function" "athena_trigger" {
 }
 
 # ==========================================
-# Create Raw + Bronze (Iceberg) tables through Athena, on apply.
+# Create the Bronze (Iceberg) tables through Athena, on apply.
 # Same Lambda, called with {"ddl": [...]} instead of an SQS event.
 # Runs again only when the SQL changes (CREATE ... IF NOT EXISTS).
+# Raw tables are NOT made here: catalog_manager creates them per file.
 # ==========================================
 
 resource "aws_lambda_invocation" "create_tables" {
   function_name = aws_lambda_function.athena_trigger.function_name
 
   input = jsonencode({
-    ddl = [
-      var.raw_table_ddl,
-      var.bronze_table_ddl
-    ]
+    ddl = var.bronze_table_ddl
   })
 
   depends_on = [
@@ -83,6 +84,7 @@ resource "aws_lambda_event_source_mapping" "raw_events" {
 
   depends_on = [
     aws_iam_role_policy.sqs,
+    aws_iam_role_policy.invoke_catalog_manager,
     aws_lambda_invocation.create_tables
   ]
 }

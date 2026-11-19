@@ -48,19 +48,30 @@ variable "raw_database_name" {
 }
 
 # ---------- Tables (from module.athena) ----------
-variable "table_name" {
-  type        = string
-  description = "Table name, same in Raw and Bronze"
+variable "table_names" {
+  type        = list(string)
+  description = "Tables to load; same name in Raw and Bronze"
 }
 
-variable "raw_table_ddl" {
+variable "source_schema" {
   type        = string
-  description = "CREATE EXTERNAL TABLE for Raw (sql/create_raw_table.sql)"
+  description = "Postgres schema; DMS writes to <raw_prefix><schema>/<table>/"
 }
 
 variable "bronze_table_ddl" {
+  type        = list(string)
+  description = "CREATE TABLE ... ICEBERG per table (sql/create_bronze_table.sql)"
+}
+
+# ---------- catalog_manager (from module.lambda_trans) ----------
+variable "catalog_manager_function_name" {
   type        = string
-  description = "CREATE TABLE ... ICEBERG for Bronze (sql/create_bronze_table.sql)"
+  description = "Lambda that creates / updates the Raw Glue table from a file"
+}
+
+variable "catalog_manager_function_arn" {
+  type        = string
+  description = "ARN of catalog_manager (for lambda:InvokeFunction)"
 }
 
 # ---------- Lambda / SQS ----------

@@ -42,7 +42,7 @@ resource "aws_iam_role_policy" "s3_read" {
           "s3:GetObject"
         ]
 
-        Resource = "${var.raw_bucket_arn}/${var.raw_table_prefix}*"
+        Resource = "${var.raw_bucket_arn}/${var.raw_prefix}${var.source_schema}/*"
       }
     ]
   })

@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "replication_instance_class" {
   description = "DMS replication instance size"
   type        = string
-  default     = "dms.t3.micro"
+  default     = "dms.t3.small"
 }
 
 variable "allocated_storage" {

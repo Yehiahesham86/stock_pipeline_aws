@@ -25,3 +25,7 @@ output "source_schema" {
 output "bronze_table_ddl" {
   value = local.bronze_ddl
 }
+
+output "quarantine_table_names" {
+  value = [for t in aws_glue_catalog_table.quarantine : "${t.database_name}.${t.name}"]
+}

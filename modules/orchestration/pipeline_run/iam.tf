@@ -66,10 +66,13 @@ resource "aws_iam_role_policy" "sfn" {
         Resource = "arn:aws:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/StepFunctionsGetEventsForECSTaskRule"
       },
       {
-        Sid      = "CheckRunning"
-        Effect   = "Allow"
-        Action   = "states:ListExecutions"
-        Resource = aws_sfn_state_machine.pipeline.arn
+        Sid    = "CheckRunning"
+        Effect = "Allow"
+        Action = "states:ListExecutions"
+        # ARN built from the name (not the resource) so this policy exists BEFORE
+        # the state machine: CreateStateMachine checks the role can create the
+        # .sync managed rule, and fails "not authorized to create managed-rule" otherwise
+        Resource = "arn:aws:states:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stateMachine:${var.state_machine_name}"
       },
     ]
   })

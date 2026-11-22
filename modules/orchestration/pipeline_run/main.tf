@@ -25,6 +25,9 @@ resource "aws_sfn_state_machine" "pipeline" {
   name     = var.state_machine_name
   role_arn = aws_iam_role.sfn.arn
 
+  # role must already have its permissions (events managed rule for ecs:runTask.sync)
+  depends_on = [aws_iam_role_policy.sfn]
+
   definition = jsonencode({
     Comment = "Raw -> Bronze (Lambda + Athena) -> Silver (Spark on ECS Fargate + DQ + Iceberg MERGE)"
     StartAt = "CheckRunning"
@@ -127,11 +130,20 @@ resource "aws_sfn_state_machine" "pipeline" {
       # ---------- Stage 2: Bronze -> Silver, only when Bronze got new rows ----------
       NewBronze = {
         Type = "Choice"
-        Choices = [{
-          Variable           = "$.totals.loaded"
-          NumericGreaterThan = 0
-          Next               = "BronzeToSilver"
-        }]
+        Choices = [
+          {
+            Variable           = "$.totals.loaded"
+            NumericGreaterThan = 0
+            Next               = "BronzeToSilver"
+          },
+          {
+            # nothing loaded because every file FAILED -> fail the run
+            # (was: NoNewData = green run that hid the errors)
+            Variable           = "$.totals.failed"
+            NumericGreaterThan = 0
+            Next               = "RawFilesFailed"
+          },
+        ]
         Default = "NoNewData"
       }
 

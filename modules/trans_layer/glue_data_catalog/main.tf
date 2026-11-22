@@ -29,3 +29,11 @@ resource "aws_glue_catalog_database" "silver" {
 resource "aws_glue_catalog_database" "gold" {
   name = "stock_gold"
 }
+
+# ==========================================
+# Quarantine Database (bad rows from Bronze -> Silver; tables in athena/quarantine.tf)
+# ==========================================
+
+resource "aws_glue_catalog_database" "quarantine" {
+  name = "stock_quarantine"
+}

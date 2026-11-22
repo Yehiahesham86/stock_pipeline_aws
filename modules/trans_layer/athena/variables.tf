@@ -28,3 +28,14 @@ variable "bronze_iceberg_prefix" {
   description = "S3 prefix in the Bronze bucket for Iceberg tables"
   default     = "iceberg/"
 }
+
+# ---------- Quarantine tables (quarantine.tf) ----------
+variable "quarantine_database_name" {
+  description = "Glue database for the quarantine tables (from module.glue_data_catalog)"
+  type        = string
+}
+
+variable "quarantine_bucket_name" {
+  description = "Bucket the Spark job writes bad rows to (from module.s3_quarantine)"
+  type        = string
+}

@@ -85,6 +85,10 @@ module "athena" {
 
   # for the Bronze table DDL in sql/ (Raw tables: catalog_manager)
   bronze_database_name = module.glue_data_catalog.bronze_database_name
+
+  # Glue tables over the Spark job's bad rows (quarantine.tf)
+  quarantine_database_name = module.glue_data_catalog.quarantine_database_name
+  quarantine_bucket_name   = module.s3_quarantine.quarantine_bucket_name
 }
 
 # ---------- Raw .parquet created -> SQS (drained by the pipeline_run state machine) -> Lambda -> Athena (Raw -> Bronze) ----------

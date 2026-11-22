@@ -1,5 +1,8 @@
 
 resource "aws_iam_role" "dms_s3_access" {
+  # destroy also detaches policies attached outside Terraform
+  force_detach_policies = true
+
   name = "stock-pipeline-dms-s3-access"
 
   assume_role_policy = jsonencode({
@@ -55,6 +58,9 @@ resource "aws_iam_role_policy" "dms_s3_access" {
 }
 
 resource "aws_iam_role" "dms_vpc" {
+  # destroy also detaches policies attached outside Terraform
+  force_detach_policies = true
+
   name        = "dms-vpc-role"
   description = "Allows AWS DMS to manage VPC networking"
 

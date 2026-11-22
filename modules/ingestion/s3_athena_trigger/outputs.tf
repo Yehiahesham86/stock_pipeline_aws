@@ -13,3 +13,7 @@ output "raw_events_dlq_url" {
 output "athena_trigger_function_name" {
   value = aws_lambda_function.athena_trigger.function_name
 }
+
+output "athena_trigger_function_arn" {
+  value = aws_lambda_function.athena_trigger.arn
+}

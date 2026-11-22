@@ -1,6 +1,9 @@
 resource "aws_s3_bucket" "silver" {
   bucket = var.silver_bucket_name
 
+  # false: keep Silver data safe; destroy fails while the bucket has objects
+  force_destroy = false
+
   tags = {
     Project = "StockDataPipeline"
     Layer   = "Silver"

@@ -21,8 +21,16 @@ Latest-row-per-key + MERGE happens in Silver.
 Also called once by Terraform with {"ddl": [...]} to create the Bronze
 Iceberg tables (see create_tables). Raw tables are made by catalog_manager.
 
-A failed message is reported in batchItemFailures, SQS retries it, and after
-max_receive_count tries it goes to the DLQ.
+Normal run: Step Functions invokes {"drain": true} on a schedule. The Lambda
+pulls messages from the queue one at a time (QUEUE_URL), loads each file, and
+deletes the message only after the file is in Bronze. It stops when the queue
+is empty, or early when time runs short ("more": true -> Step Functions calls
+it again). One Lambda at a time -> no parallel Iceberg commits.
+
+A failed message is NOT deleted: it stays invisible for the queue's visibility
+timeout, the next scheduled run retries it, and after max_receive_count tries
+it goes to the DLQ.
+(An SQS event with Records is still handled, e.g. for a manual test.)
 """
 
 import json
@@ -35,6 +43,7 @@ import boto3
 athena = boto3.client("athena")
 glue = boto3.client("glue")
 lambda_client = boto3.client("lambda")
+sqs = boto3.client("sqs")
 
 # Bronze-only columns, filled by this Lambda (not in Raw)
 ADDED_COLUMNS = ("source_file", "ingested_at")
@@ -46,6 +55,10 @@ BRONZE_TYPE = {"tinyint": "int", "smallint": "int"}
 # so the failure is logged instead of a hard timeout
 SAFETY_MS = 15000
 
+# drain mode: don't start a new file with less than this left (one file =
+# catalog_manager call + up to 5 Athena queries)
+DRAIN_STOP_MS = 90000
+
 WORKGROUP = os.environ["ATHENA_WORKGROUP"]
 RAW_DATABASE = os.environ["RAW_DATABASE"]
 BRONZE_DATABASE = os.environ["BRONZE_DATABASE"]
@@ -53,6 +66,7 @@ RAW_PREFIX = os.environ["RAW_PREFIX"]
 SOURCE_SCHEMA = os.environ["SOURCE_SCHEMA"]
 TABLES = [t.strip() for t in os.environ["TABLES"].split(",") if t.strip()]
 CATALOG_MANAGER_FUNCTION = os.environ["CATALOG_MANAGER_FUNCTION"]
+QUEUE_URL = os.environ["QUEUE_URL"]
 
 
 def log(**fields):
@@ -201,7 +215,7 @@ def load_file(bucket, key, context):
     )
     if already > 0:
         log(step="skip", table=table, file=path, rows=already)
-        return
+        return False
 
     # only columns that exist in this file; a column dropped in the source
     # stays in Bronze and is NULL for new rows
@@ -224,6 +238,7 @@ def load_file(bucket, key, context):
         raise RuntimeError(f"INSERT {query_id} wrote 0 rows for {path}")
 
     log(step="loaded", table=table, file=path, rows=inserted, query=query_id)
+    return True
 
 
 def s3_objects(message_body):
@@ -251,13 +266,54 @@ def create_tables(statements):
     return {"created": len(statements)}
 
 
+# --------------------------------------------------
+# Drain mode (Step Functions)
+# --------------------------------------------------
+
+def drain(context):
+    loaded = skipped = failed = 0
+
+    while context.get_remaining_time_in_millis() > DRAIN_STOP_MS:
+        messages = sqs.receive_message(
+            QueueUrl=QUEUE_URL,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=1,
+        ).get("Messages", [])
+
+        if not messages:
+            result = {"loaded": loaded, "skipped": skipped, "failed": failed, "more": False}
+            log(step="drain_done", **result)
+            return result
+
+        message = messages[0]
+        try:
+            for bucket, key in s3_objects(message["Body"]):
+                if load_file(bucket, key, context):
+                    loaded += 1
+                else:
+                    skipped += 1
+            # only after the file is in Bronze; a crash before this = message comes back
+            sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=message["ReceiptHandle"])
+        except Exception as error:
+            # left invisible until the visibility timeout -> retried by a later run
+            log(step="failed", message=message["MessageId"], error=str(error))
+            failed += 1
+
+    result = {"loaded": loaded, "skipped": skipped, "failed": failed, "more": True}
+    log(step="drain_paused", **result)
+    return result
+
+
 def lambda_handler(event, context):
     if "ddl" in event:
         return create_tables(event["ddl"])
 
+    if event.get("drain"):
+        return drain(context)
+
     if "Records" not in event:
         raise ValueError(
-            "Expected an SQS event (Records) or {'ddl': [...]}; "
+            "Expected {'drain': true}, an SQS event (Records) or {'ddl': [...]}; "
             "to test by hand, copy a Raw object onto itself instead"
         )
 

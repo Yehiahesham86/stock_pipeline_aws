@@ -5,6 +5,9 @@
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "athena_trigger" {
+  # destroy also detaches policies attached outside Terraform
+  force_detach_policies = true
+
   name = "stock-raw-athena-trigger-role"
 
   assume_role_policy = jsonencode({

@@ -4,6 +4,9 @@ resource "aws_athena_workgroup" "stock_pipeline" {
   description = "Athena workgroup for the stock data lake"
   state       = "ENABLED"
 
+  # destroy deletes the workgroup even with saved queries / query history in it
+  force_destroy = true
+
   configuration {
     enforce_workgroup_configuration    = true
     publish_cloudwatch_metrics_enabled = true

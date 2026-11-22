@@ -21,3 +21,24 @@ output "raw_events_queue_url" {
 output "raw_events_dlq_url" {
   value = module.s3_athena_trigger.raw_events_dlq_url
 }
+
+output "quarantine_bucket_name" {
+  value = module.s3_quarantine.quarantine_bucket_name
+}
+
+output "emr_application_id" {
+  value = module.emr_serverless.application_id
+}
+
+output "emr_job_role_arn" {
+  value = module.emr_serverless.job_role_arn
+}
+
+output "emr_artifacts_bucket_name" {
+  value = module.emr_serverless.artifacts_bucket_name
+}
+
+# start a run by hand: aws stepfunctions start-execution --state-machine-arn <this>
+output "pipeline_state_machine_arn" {
+  value = module.pipeline_run.state_machine_arn
+}

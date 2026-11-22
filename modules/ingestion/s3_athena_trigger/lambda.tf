@@ -1,6 +1,6 @@
 # ==========================================
-# Lambda: SQS message -> catalog_manager (Raw table) -> Athena INSERT INTO Bronze
-# This is the function SQS triggers; it calls catalog_manager itself.
+# Lambda: queue message -> catalog_manager (Raw table) -> Athena INSERT INTO Bronze
+# Step Functions invokes it ({"drain": true}); it pulls messages and calls catalog_manager itself.
 # ==========================================
 
 data "archive_file" "athena_trigger" {
@@ -36,6 +36,7 @@ resource "aws_lambda_function" "athena_trigger" {
       SOURCE_SCHEMA            = var.source_schema
       TABLES                   = join(",", var.table_names)
       CATALOG_MANAGER_FUNCTION = var.catalog_manager_function_name
+      QUEUE_URL                = aws_sqs_queue.raw_events.url
     }
   }
 
@@ -66,25 +67,5 @@ resource "aws_lambda_invocation" "create_tables" {
   ]
 }
 
-# SQS -> Lambda (starts after the tables exist)
-resource "aws_lambda_event_source_mapping" "raw_events" {
-  event_source_arn = aws_sqs_queue.raw_events.arn
-  function_name    = aws_lambda_function.athena_trigger.arn
-
-  batch_size = var.batch_size
-
-  # Only failed messages go back to the queue, not the whole batch
-  function_response_types = ["ReportBatchItemFailures"]
-
-  # Max Lambdas at once. Parallel INSERTs into one Iceberg table can fail
-  # with ICEBERG_COMMIT_ERROR (nothing written, safe to retry).
-  scaling_config {
-    maximum_concurrency = var.max_concurrency
-  }
-
-  depends_on = [
-    aws_iam_role_policy.sqs,
-    aws_iam_role_policy.invoke_catalog_manager,
-    aws_lambda_invocation.create_tables
-  ]
-}
+# No SQS -> Lambda event source mapping: Step Functions (module pipeline_run)
+# invokes this Lambda with {"drain": true} and it pulls from the queue itself.

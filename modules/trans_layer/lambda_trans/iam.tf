@@ -1,5 +1,8 @@
 #lambda role for glue catalog access and s3 access
 resource "aws_iam_role" "lambda_role" {
+  # destroy also detaches policies attached outside Terraform
+  force_detach_policies = true
+
   name = "stock-bronze-catalog-lambda-role"
 
   assume_role_policy = jsonencode({

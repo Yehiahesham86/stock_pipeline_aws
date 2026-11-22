@@ -1,5 +1,8 @@
 
 resource "aws_security_group" "dms" {
+  # destroy removes the rules first (else a rule referencing another SG can block the delete)
+  revoke_rules_on_delete = true
+
   name        = "stock-pipeline-dms-sg"
   description = "Network access for stock pipeline DMS"
   vpc_id      = var.vpc_id

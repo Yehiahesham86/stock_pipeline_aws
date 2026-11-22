@@ -86,20 +86,6 @@ variable "lambda_timeout" {
   default     = 300
 }
 
-variable "batch_size" {
-  type = number
-  # 1: a Lambda timeout then only retries the one file it was loading,
-  # not files of the same batch that were already inserted
-  description = "SQS messages per Lambda call"
-  default     = 1
-}
-
-variable "max_concurrency" {
-  type        = number
-  description = "Max parallel Lambdas from SQS (AWS minimum is 2)"
-  default     = 2
-}
-
 variable "max_receive_count" {
   type        = number
   description = "Failed tries before a message moves to the DLQ"

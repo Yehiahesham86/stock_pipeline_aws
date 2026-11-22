@@ -3,8 +3,9 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "raw" {
-  bucket        = var.raw_bucket_name
-  force_destroy = false
+  bucket = var.raw_bucket_name
+  # terraform destroy empties the bucket first (DMS files are re-creatable from the source DB)
+  force_destroy = true
 
   tags = {
     Project = "StockDataPipeline"

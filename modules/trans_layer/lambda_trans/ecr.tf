@@ -26,12 +26,14 @@ resource "docker_image" "catalog_manager" {
     src_sha1 = sha1(join("", [for f in fileset("${path.module}/catalog_manager", "**") : filesha1("${path.module}/catalog_manager/${f}")]))
   }
 
-  keep_locally = true
+  # destroy also removes the image from the machine that built it
+  keep_locally = false
 }
 
 resource "docker_registry_image" "catalog_manager" {
-  name          = docker_image.catalog_manager.name
-  keep_remotely = true
+  name = docker_image.catalog_manager.name
+  # destroy also deletes the image from ECR
+  keep_remotely = false
 
   triggers = {
     image_id = docker_image.catalog_manager.image_id

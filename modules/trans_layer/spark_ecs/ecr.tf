@@ -52,12 +52,14 @@ resource "docker_image" "spark_job" {
     ]))
   }
 
-  keep_locally = true
+  # destroy also removes the image from the machine that built it
+  keep_locally = false
 }
 
 resource "docker_registry_image" "spark_job" {
-  name          = docker_image.spark_job.name
-  keep_remotely = true
+  name = docker_image.spark_job.name
+  # destroy also deletes the image from ECR
+  keep_remotely = false
 
   triggers = {
     image_id = docker_image.spark_job.image_id

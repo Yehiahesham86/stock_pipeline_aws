@@ -26,6 +26,7 @@ resource "aws_lambda_function" "catalog_manager" {
   depends_on = [
     aws_iam_role_policy.s3_read,
     aws_iam_role_policy.glue_catalog_access,
-    aws_iam_role_policy_attachment.lambda_logs
+    aws_iam_role_policy_attachment.lambda_logs,
+    aws_cloudwatch_log_group.catalog_manager
   ]
 }

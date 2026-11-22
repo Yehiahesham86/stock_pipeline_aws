@@ -27,7 +27,7 @@ variable "max_drain_loops" {
 }
 
 variable "job_timeout_minutes" {
-  description = "EMR job is cancelled after this (cost cap)"
+  description = "Spark task is stopped after this (cost cap)"
   type        = number
   default     = 30
 }
@@ -37,31 +37,32 @@ variable "raw_to_bronze_function_arn" {
   type = string
 }
 
-# ---------- Stage 2 (from module.emr_serverless) ----------
-variable "emr_application_id" {
+# ---------- Stage 2 (from module.spark_ecs + module.vpc_config) ----------
+variable "ecs_cluster_arn" {
   type = string
 }
 
-variable "emr_application_arn" {
+variable "ecs_task_definition_arn" {
   type = string
 }
 
-variable "emr_job_role_arn" {
+variable "ecs_task_definition_family_arn" {
   type = string
 }
 
-variable "emr_entry_point" {
+variable "ecs_task_role_arn" {
   type = string
 }
 
-variable "emr_entry_point_arguments" {
-  type = list(string)
-}
-
-variable "emr_spark_submit_parameters" {
+variable "ecs_execution_role_arn" {
   type = string
 }
 
-variable "emr_log_uri" {
+variable "ecs_security_group_id" {
   type = string
+}
+
+variable "ecs_subnet_ids" {
+  description = "Public subnets (task gets a public IP, no NAT)"
+  type        = list(string)
 }

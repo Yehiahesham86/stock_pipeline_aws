@@ -115,11 +115,12 @@ module "s3_athena_trigger" {
   catalog_manager_function_arn  = module.lambda_trans.lambda_function_arn
 }
 
-# ---------- Bronze Iceberg -> EMR Serverless Spark -> Silver Iceberg / quarantine ----------
-module "emr_serverless" {
-  source = "./modules/trans_layer/emr_serverless"
+# ---------- Bronze Iceberg -> Spark on ECS Fargate -> Silver Iceberg / quarantine ----------
+module "spark_ecs" {
+  source = "./modules/trans_layer/spark_ecs"
 
   aws_region = var.aws_region
+  vpc_id     = module.vpc_config.vpc_id
 
   bronze_bucket_arn     = module.s3_bronze.bronze_bucket_arn
   silver_bucket_arn     = module.s3_silver.silver_bucket_arn
@@ -134,7 +135,7 @@ module "emr_serverless" {
   table_names            = module.athena.table_names
 }
 
-# ---------- one scheduled run: Raw -> Bronze (Lambda) then Bronze -> Silver (EMR) ----------
+# ---------- one scheduled run: Raw -> Bronze (Lambda) then Bronze -> Silver (Spark on ECS) ----------
 module "pipeline_run" {
   source = "./modules/orchestration/pipeline_run"
 
@@ -143,12 +144,12 @@ module "pipeline_run" {
   # stage 1: trigger Lambda in drain mode
   raw_to_bronze_function_arn = module.s3_athena_trigger.athena_trigger_function_arn
 
-  # stage 2: EMR Serverless job
-  emr_application_id          = module.emr_serverless.application_id
-  emr_application_arn         = module.emr_serverless.application_arn
-  emr_job_role_arn            = module.emr_serverless.job_role_arn
-  emr_entry_point             = module.emr_serverless.entry_point
-  emr_entry_point_arguments   = module.emr_serverless.entry_point_arguments
-  emr_spark_submit_parameters = module.emr_serverless.spark_submit_parameters
-  emr_log_uri                 = module.emr_serverless.log_uri
+  # stage 2: Spark task on Fargate in the public subnets
+  ecs_cluster_arn                = module.spark_ecs.cluster_arn
+  ecs_task_definition_arn        = module.spark_ecs.task_definition_arn
+  ecs_task_definition_family_arn = module.spark_ecs.task_definition_family_arn
+  ecs_task_role_arn              = module.spark_ecs.task_role_arn
+  ecs_execution_role_arn         = module.spark_ecs.execution_role_arn
+  ecs_security_group_id          = module.spark_ecs.security_group_id
+  ecs_subnet_ids                 = module.vpc_config.public_subnet_ids
 }

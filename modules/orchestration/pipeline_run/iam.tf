@@ -34,29 +34,36 @@ resource "aws_iam_role_policy" "sfn" {
         Resource = [var.raw_to_bronze_function_arn, "${var.raw_to_bronze_function_arn}:*"]
       },
       {
-        Sid    = "BronzeToSilver"
-        Effect = "Allow"
-        Action = ["emr-serverless:StartJobRun", "emr-serverless:GetJobRun", "emr-serverless:CancelJobRun"]
-        Resource = [
-          var.emr_application_arn,
-          "${var.emr_application_arn}/jobruns/*",
-        ]
+        Sid      = "BronzeToSilverRun"
+        Effect   = "Allow"
+        Action   = "ecs:RunTask"
+        Resource = "${var.ecs_task_definition_family_arn}:*"
       },
       {
-        Sid      = "PassEmrJobRole"
+        # .sync polls the task and stops it on timeout / execution abort
+        Sid      = "BronzeToSilverWatch"
         Effect   = "Allow"
-        Action   = "iam:PassRole"
-        Resource = var.emr_job_role_arn
+        Action   = ["ecs:DescribeTasks", "ecs:StopTask"]
+        Resource = "*"
         Condition = {
-          StringEquals = { "iam:PassedToService" = "emr-serverless.amazonaws.com" }
+          ArnEquals = { "ecs:cluster" = var.ecs_cluster_arn }
         }
       },
       {
-        # .sync: Step Functions creates this managed rule to hear when the job ends
-        Sid      = "EmrSyncRule"
+        Sid      = "PassTaskRoles"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = [var.ecs_task_role_arn, var.ecs_execution_role_arn]
+        Condition = {
+          StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" }
+        }
+      },
+      {
+        # .sync: Step Functions creates this managed rule to hear when the task stops
+        Sid      = "EcsSyncRule"
         Effect   = "Allow"
         Action   = ["events:PutTargets", "events:PutRule", "events:DescribeRule"]
-        Resource = "arn:aws:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/StepFunctionsGetEventsForEMRServerlessJobRule"
+        Resource = "arn:aws:events:${var.aws_region}:${data.aws_caller_identity.current.account_id}:rule/StepFunctionsGetEventsForECSTaskRule"
       },
       {
         Sid      = "CheckRunning"

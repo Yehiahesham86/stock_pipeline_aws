@@ -44,36 +44,8 @@ Source tables (Postgres schema `app`): `teachers`, `students`, `class_bookings`,
 ---
 
 ## Architecture
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/b70078b5-1084-4496-a6b0-1c135044f33e" />
 
-```mermaid
-flowchart TD
-    PG[("Postgres 16<br/>wal_level=logical<br/>+ data generator")] -->|TCP tunnel| DMS["AWS DMS<br/>full load + CDC"]
-    DMS --> RAW[("S3 Raw<br/>DMS parquet")]
-    RAW -->|ObjectCreated| SQS["SQS queue<br/>+ DLQ"]
-
-    SCH["EventBridge Scheduler<br/>hourly"] --> SFN
-
-    subgraph SFN["Step Functions: tutoring-pipeline-run"]
-        direction TB
-        L["1 · RawToBronze<br/>Lambda drains SQS<br/>catalog_manager → Glue schema<br/>Athena INSERT"]
-        S["2 · BronzeToSilver<br/>Spark on ECS Fargate<br/>(only if new files)"]
-        G["3 · Silver → Gold<br/>dbt-athena build + tests<br/>(planned)"]
-        L --> S --> G
-    end
-
-    SQS -.->|drained by| L
-    L --> BR[("Bronze Iceberg<br/>append-only, every event")]
-    BR --> S
-    S -->|good rows: MERGE| SI[("Silver Iceberg<br/>current state per key")]
-    S -->|bad rows| Q[("Quarantine<br/>parquet + Athena tables")]
-    SI --> G
-    BR -.->|cancellation history| G
-    G --> GO[("Gold Iceberg<br/>4 business models<br/>(planned)")]
-    GO -.-> EXT["External BI / serving tool<br/>(planned, tool not chosen)"]
-
-    classDef planned stroke-dasharray: 5 5;
-    class G,GO,EXT planned
-```
 
 Solid boxes are built and running on AWS; dashed boxes are designed but not built yet.
 

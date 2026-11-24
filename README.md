@@ -57,7 +57,7 @@ flowchart TD
         direction TB
         L["1 · RawToBronze<br/>Lambda drains SQS<br/>catalog_manager → Glue schema<br/>Athena INSERT"]
         S["2 · BronzeToSilver<br/>Spark on ECS Fargate<br/>(only if new files)"]
-        G["3 · Silver → Gold<br/>dbt-athena (in progress)"]
+        G["3 · Silver → Gold<br/>dbt-athena build + tests<br/>(planned)"]
         L --> S --> G
     end
 
@@ -67,7 +67,15 @@ flowchart TD
     S -->|good rows: MERGE| SI[("Silver Iceberg<br/>current state per key")]
     S -->|bad rows| Q[("Quarantine<br/>parquet + Athena tables")]
     SI --> G
+    BR -.->|cancellation history| G
+    G --> GO[("Gold Iceberg<br/>4 business models<br/>(planned)")]
+    GO -.-> EXT["External BI / serving tool<br/>(planned, tool not chosen)"]
+
+    classDef planned stroke-dasharray: 5 5;
+    class G,GO,EXT planned
 ```
+
+Solid boxes are built and running on AWS; dashed boxes are designed but not built yet.
 
 | Layer | Storage | Contents |
 |---|---|---|
@@ -75,7 +83,41 @@ flowchart TD
 | **Bronze** | Iceberg (Glue Catalog) | Append-only log of every I/U/D event + `source_file`, `ingested_at` |
 | **Silver** | Iceberg (Glue Catalog) | One row per primary key, current state; deletes applied |
 | **Quarantine** | S3 parquet + Athena tables | Rejected rows + the names of the failed rules, run id, timestamp |
-| **Gold** | Iceberg via dbt-athena | The 4 business models (in progress) |
+| **Gold** *(planned)* | Iceberg via dbt-athena | The 4 business models, see [Gold layer design](#gold-layer-design-planned) |
+| **Serving** *(planned)* | External tool | Gold pushed to a BI / external tool, see [Serving layer](#serving-layer-planned) |
+
+---
+
+## Gold layer design (planned)
+
+A dbt project (`dbt-athena`) on top of `stock_silver`, added to Step Functions as
+step 3 after BronzeToSilver. It runs `dbt build`, so models and tests run
+together and a failing test fails the pipeline run.
+
+| Model | Grain | Logic | Source |
+|---|---|---|---|
+| `gold_teacher_utilization_weekly` | teacher × ISO week | booked, completed, `completed / booked` | Silver `class_bookings`, `teachers` |
+| `gold_cancellation_rates` | teacher × cancel_reason × week | cancelled + no-show counts and rates | **Bronze** `class_bookings` (see note) |
+| `gold_net_revenue_per_student` | student | sum(purchases) − sum(refunds linked via `refund_of`) | Silver `payments`, `students` |
+| `gold_referral_funnel` | referrer × month | invited → trial → converted / expired counts and conversion % | Silver `referrals` |
+
+**Why cancellations come from Bronze:** the app hard-deletes some cancelled
+bookings, and Silver applies deletes, so those cancellations no longer exist in
+Silver. Bronze keeps every event, including the update to `cancelled` before the
+delete. Counting from Silver would make the cancellation rate too low.
+
+**dbt tests planned:** `unique` + `not_null` on each model's grain,
+`relationships` to `teachers` / `students`, `accepted_values` on statuses and
+cancel reasons, rates between 0 and 1, and a reconciliation check: each model
+answers the same question asked directly in the source Postgres.
+
+---
+
+## Serving layer (planned)
+
+The last step streams Gold to an external tool for business users. The tool
+hasn't been chosen yet. The selection criteria are a $0 / free tier, reading from
+Athena or S3 without an always-on server, and refreshing after each pipeline run.
 
 ---
 

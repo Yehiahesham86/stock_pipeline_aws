@@ -3,21 +3,46 @@
 -- A refund is counted against the student of the purchase it refunds
 -- (refund_of -> payment_id). The source test on refund_of + the singular test
 -- assert_net_revenue_reconciles catch refunds that would drop out of this join.
+-- Students missing from Silver still get a row (see the orphan note below).
 -- Currency: amounts are summed as-is, which is only right while every payment
 -- is USD -> tests/assert_single_currency.sql fails the build otherwise
 -- (multi-currency needs the FX rates step first).
 
-with students as (
+-- Orphan payments: a payment whose student is not in Silver (student row
+-- quarantined by DQ, or not merged yet) still counts. It gets a row with NULL
+-- name/plan/status instead of silently dropping out of revenue. The source
+-- test on payments.student_id (severity warn) names those students.
+
+with payments as (
+
+    select payment_id, student_id, payment_type, amount, refund_of
+    from {{ source('silver', 'payments') }}
+
+),
+
+silver_students as (
 
     select student_id, full_name, plan, status
     from {{ source('silver', 'students') }}
 
 ),
 
-payments as (
+students as (
 
-    select payment_id, student_id, payment_type, amount, refund_of
-    from {{ source('silver', 'payments') }}
+    select student_id, full_name, plan, status
+    from silver_students
+
+    union all
+
+    select distinct
+        p.student_id,
+        cast(null as varchar) as full_name,
+        cast(null as varchar) as plan,
+        cast(null as varchar) as status
+    from payments as p
+    where not exists (
+        select 1 from silver_students as s where s.student_id = p.student_id
+    )
 
 ),
 

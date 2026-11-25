@@ -23,6 +23,16 @@ sources:
         columns:
           - name: payment_id
             data_tests: [unique, not_null]
+          # payment of a student not in Silver (quarantined / not merged yet).
+          # Gold keeps the revenue (orphan row), this only names the students.
+          - name: student_id
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('silver', 'students')
+                    field: student_id
+                  config:
+                    severity: warn
           # a refund whose purchase is missing would silently drop out of net revenue
           - name: refund_of
             data_tests:

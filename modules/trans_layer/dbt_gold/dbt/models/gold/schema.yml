@@ -76,10 +76,9 @@ models:
         data_tests:
           - unique
           - not_null
-          - relationships:
-              arguments:
-                to: source('silver', 'students')
-                field: student_id
+          # no relationships test to silver.students: orphan payments are kept
+          # on purpose (NULL name/plan); the source test on payments.student_id
+          # warns about them
       - name: net_revenue
         data_tests:
           - not_null

@@ -6,5 +6,5 @@ variable "aws_region" {
 variable "raw_bucket_name" {
   type        = string
   description = "stock_price_s3_raw_pipeline"
-  default     = "stock-raw-unique-12345"
+  default     = "stock-raw-unique-yh-toutoring-1345"
 }

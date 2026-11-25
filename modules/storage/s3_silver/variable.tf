@@ -6,5 +6,5 @@ variable "aws_region" {
 
 variable "silver_bucket_name" {
   type    = string
-  default = "stock-silver-unique123"
+  default = "stock-silver-yh-toutoring-1345"
 }

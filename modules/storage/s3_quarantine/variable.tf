@@ -1,7 +1,7 @@
 variable "quarantine_bucket_name" {
   description = "Bucket for rows that failed data quality"
   type        = string
-  default     = "tutoring-quarantine-unique12345"
+  default     = "tutoring-quarantine-yh-toutoring-1345"
 }
 
 variable "quarantine_retention_days" {

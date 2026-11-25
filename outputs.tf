@@ -35,6 +35,19 @@ output "spark_log_group_name" {
   value = module.spark_ecs.log_group_name
 }
 
+output "gold_bucket_name" {
+  value = module.s3_gold.gold_bucket_name
+}
+
+# query in Athena: SELECT * FROM stock_gold.gold_teacher_utilization_weekly
+output "gold_database_name" {
+  value = module.glue_data_catalog.gold_database_name
+}
+
+output "dbt_log_group_name" {
+  value = module.dbt_gold.log_group_name
+}
+
 # start a run by hand: aws stepfunctions start-execution --state-machine-arn <this>
 output "pipeline_state_machine_arn" {
   value = module.pipeline_run.state_machine_arn

@@ -21,3 +21,7 @@ output "silver_database_arn" {
 output "quarantine_database_name" {
   value = aws_glue_catalog_database.quarantine.name
 }
+
+output "gold_database_name" {
+  value = aws_glue_catalog_database.gold.name
+}

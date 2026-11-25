@@ -66,3 +66,30 @@ variable "ecs_subnet_ids" {
   description = "Public subnets (task gets a public IP, no NAT)"
   type        = list(string)
 }
+
+# ---------- Stage 3 (from module.dbt_gold); same cluster + subnets as stage 2 ----------
+variable "dbt_timeout_minutes" {
+  description = "dbt task is stopped after this (cost cap)"
+  type        = number
+  default     = 15
+}
+
+variable "dbt_task_definition_arn" {
+  type = string
+}
+
+variable "dbt_task_definition_family_arn" {
+  type = string
+}
+
+variable "dbt_task_role_arn" {
+  type = string
+}
+
+variable "dbt_execution_role_arn" {
+  type = string
+}
+
+variable "dbt_security_group_id" {
+  type = string
+}

@@ -1,6 +1,8 @@
 {
   "name": "Terraform Development Environment",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  // pinned: base:ubuntu moved to 26.04 "resolute", which has no moby packages
+  // (docker-outside-of-docker feature fails there)
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   
   // Installs Terraform automatically during container creation
   "features": {

@@ -34,10 +34,10 @@ resource "aws_iam_role_policy" "sfn" {
         Resource = [var.raw_to_bronze_function_arn, "${var.raw_to_bronze_function_arn}:*"]
       },
       {
-        Sid      = "BronzeToSilverRun"
+        Sid      = "RunTasks"
         Effect   = "Allow"
         Action   = "ecs:RunTask"
-        Resource = "${var.ecs_task_definition_family_arn}:*"
+        Resource = ["${var.ecs_task_definition_family_arn}:*", "${var.dbt_task_definition_family_arn}:*"]
       },
       {
         # .sync polls the task and stops it on timeout / execution abort
@@ -53,7 +53,7 @@ resource "aws_iam_role_policy" "sfn" {
         Sid      = "PassTaskRoles"
         Effect   = "Allow"
         Action   = "iam:PassRole"
-        Resource = [var.ecs_task_role_arn, var.ecs_execution_role_arn]
+        Resource = [var.ecs_task_role_arn, var.ecs_execution_role_arn, var.dbt_task_role_arn, var.dbt_execution_role_arn]
         Condition = {
           StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" }
         }

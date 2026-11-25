@@ -26,6 +26,11 @@ output "bronze_table_ddl" {
   value = local.bronze_ddl
 }
 
+# prefix inside the Bronze bucket (IAM for whoever runs Athena queries)
+output "athena_results_prefix" {
+  value = var.athena_results_prefix
+}
+
 output "quarantine_table_names" {
   value = [for t in aws_glue_catalog_table.quarantine : "${t.database_name}.${t.name}"]
 }

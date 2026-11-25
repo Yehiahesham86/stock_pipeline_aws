@@ -1,0 +1,120 @@
+version: 2
+
+# Tests run inside `dbt build`, right after each model. A failing test
+# (severity error) makes dbt exit 1 -> the ECS task fails -> the Step
+# Functions run fails (SilverToGoldFailed).
+
+models:
+  - name: gold_teacher_utilization_weekly
+    description: "Q1: booked vs. completed classes per teacher per ISO week"
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [teacher_id, week_start]
+    columns:
+      - name: teacher_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: source('silver', 'teachers')
+                field: teacher_id
+      - name: week_start
+        data_tests: [not_null]
+      - name: booked_classes
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 1
+      - name: utilization_rate
+        data_tests:
+          - not_null
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: gold_cancellation_rates
+    description: "Q2: cancelled + no-show classes per teacher, week and reason (incl. hard-deleted bookings)"
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [teacher_id, week_start, reason]
+    columns:
+      - name: teacher_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: source('silver', 'teachers')
+                field: teacher_id
+      - name: week_start
+        data_tests: [not_null]
+      - name: reason
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [student_request, teacher_unavailable, technical_issue, schedule_conflict, other, no_show]
+      - name: outcome
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [cancelled, no_show]
+      - name: rate
+        data_tests:
+          - not_null
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: gold_net_revenue_per_student
+    description: "Q3: purchases minus refunds per student (USD)"
+    columns:
+      - name: student_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: source('silver', 'students')
+                field: student_id
+      - name: net_revenue
+        data_tests:
+          - not_null
+          # refund bigger than what the student paid: suspicious, not impossible
+          - value_between:
+              arguments:
+                min_value: 0
+              config:
+                severity: warn
+
+  - name: gold_referral_funnel
+    description: "Q4: referrals per referrer and invite month, by funnel stage"
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [referrer_id, invite_month]
+    columns:
+      - name: referrer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: source('silver', 'students')
+                field: student_id
+      - name: invite_month
+        data_tests: [not_null]
+      - name: trial_rate
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: conversion_rate
+        data_tests:
+          - value_between:
+              arguments:
+                min_value: 0
+                max_value: 1

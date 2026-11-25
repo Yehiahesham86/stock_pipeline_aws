@@ -1,0 +1,24 @@
+# Gold layer: 4 business tables over Silver (+ Bronze delete events), built
+# with dbt-athena. Run by Step Functions as `dbt build` (models + tests).
+name: tutoring_gold
+version: "1.0.0"
+profile: tutoring
+
+model-paths: ["models"]
+test-paths: ["tests"]
+clean-targets: ["target", "logs"]
+
+flags:
+  send_anonymous_usage_stats: false
+
+models:
+  tutoring_gold:
+    # compiled into the Gold SQL as a CTE: no extra Athena object to manage
+    intermediate:
+      +materialized: ephemeral
+    # full rebuild every run (CTAS into a new table, then swap): idempotent,
+    # and late changes / deletes in Silver always show up. Data is a few MB.
+    gold:
+      +materialized: table
+      +table_type: iceberg
+      +format: parquet

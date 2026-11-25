@@ -32,6 +32,11 @@ module "s3_silver" {
   source = "./modules/storage/s3_silver"
 }
 
+# ---------- the 4 business tables built by dbt ----------
+module "s3_gold" {
+  source = "./modules/storage/s3_gold"
+}
+
 # ---------- bad rows from the Bronze -> Silver data quality check ----------
 module "s3_quarantine" {
   source = "./modules/storage/s3_quarantine"
@@ -139,7 +144,30 @@ module "spark_ecs" {
   table_names            = module.athena.table_names
 }
 
-# ---------- one scheduled run: Raw -> Bronze (Lambda) then Bronze -> Silver (Spark on ECS) ----------
+# ---------- Silver Iceberg -> dbt build on ECS Fargate (SQL runs in Athena) -> Gold Iceberg ----------
+module "dbt_gold" {
+  source = "./modules/trans_layer/dbt_gold"
+
+  aws_region = var.aws_region
+  vpc_id     = module.vpc_config.vpc_id
+
+  athena_workgroup_name   = module.athena.athena_workgroup_name
+  athena_workgroup_arn    = module.athena.athena_workgroup_arn
+  athena_results_location = module.athena.athena_results_location
+  athena_results_prefix   = module.athena.athena_results_prefix
+
+  bronze_bucket_arn = module.s3_bronze.bronze_bucket_arn
+  silver_bucket_arn = module.s3_silver.silver_bucket_arn
+  gold_bucket_arn   = module.s3_gold.gold_bucket_arn
+  gold_bucket_name  = module.s3_gold.gold_bucket_name
+
+  # Bronze only for class_bookings delete events (hard-deleted cancellations)
+  bronze_database_name = module.glue_data_catalog.bronze_database_name
+  silver_database_name = module.glue_data_catalog.silver_database_name
+  gold_database_name   = module.glue_data_catalog.gold_database_name
+}
+
+# ---------- one scheduled run: Raw -> Bronze (Lambda) -> Silver (Spark on ECS) -> Gold (dbt on ECS) ----------
 module "pipeline_run" {
   source = "./modules/orchestration/pipeline_run"
 
@@ -156,4 +184,11 @@ module "pipeline_run" {
   ecs_execution_role_arn         = module.spark_ecs.execution_role_arn
   ecs_security_group_id          = module.spark_ecs.security_group_id
   ecs_subnet_ids                 = module.vpc_config.public_subnet_ids
+
+  # stage 3: dbt task on the same cluster + subnets
+  dbt_task_definition_arn        = module.dbt_gold.task_definition_arn
+  dbt_task_definition_family_arn = module.dbt_gold.task_definition_family_arn
+  dbt_task_role_arn              = module.dbt_gold.task_role_arn
+  dbt_execution_role_arn         = module.dbt_gold.execution_role_arn
+  dbt_security_group_id          = module.dbt_gold.security_group_id
 }

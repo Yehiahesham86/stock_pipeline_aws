@@ -1,0 +1,17 @@
+# Every value comes from the ECS task definition (../ecs.tf). No secrets:
+# AWS credentials = the task role, found by boto3's default chain.
+tutoring:
+  target: aws
+  outputs:
+    aws:
+      type: athena
+      region_name: "{{ env_var('AWS_REGION') }}"
+      database: awsdatacatalog
+      schema: "{{ env_var('GOLD_SCHEMA') }}"
+      work_group: "{{ env_var('ATHENA_WORKGROUP') }}"
+      s3_staging_dir: "{{ env_var('ATHENA_RESULTS_LOCATION') }}"
+      # Gold table data: <GOLD_DATA_DIR><schema>/<table>/<uuid>/
+      s3_data_dir: "{{ env_var('GOLD_DATA_DIR') }}"
+      s3_data_naming: schema_table_unique
+      threads: "{{ env_var('DBT_THREADS', '4') | as_number }}"
+      num_retries: 3

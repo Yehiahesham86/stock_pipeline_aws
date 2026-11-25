@@ -9,3 +9,8 @@ tfplan
 *.tfplan
 # built by archive_file
 lambda_package.zip
+# dbt run output (local runs of modules/trans_layer/dbt_gold/dbt)
+target/
+dbt_packages/
+logs/
+.user.yml

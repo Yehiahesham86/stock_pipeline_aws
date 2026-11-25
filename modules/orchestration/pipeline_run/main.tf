@@ -13,6 +13,12 @@
 #        │
 #   BronzeToSilver (ECS Fargate runTask.sync: Spark job, dedup -> DQ ->
 #        │          MERGE Silver Iceberg / bad rows -> quarantine bucket)
+#   SilverExitCode? ── Spark exited non-zero ──> BronzeToSilverFailed
+#        │
+#   SilverToGold (ECS Fargate runTask.sync: `dbt build` -> 4 Gold Iceberg
+#        │        tables through Athena + dbt tests)
+#   GoldExitCode? ── a model or test failed ──> SilverToGoldFailed
+#        │
 #   RawFailures? ── some Raw files failed ──> RawFilesFailed (execution FAILED,
 #        │          files retry next run, DLQ after max_receive_count)
 #   Done
@@ -29,7 +35,7 @@ resource "aws_sfn_state_machine" "pipeline" {
   depends_on = [aws_iam_role_policy.sfn]
 
   definition = jsonencode({
-    Comment = "Raw -> Bronze (Lambda + Athena) -> Silver (Spark on ECS Fargate + DQ + Iceberg MERGE)"
+    Comment = "Raw -> Bronze (Lambda + Athena) -> Silver (Spark on ECS Fargate + DQ + Iceberg MERGE) -> Gold (dbt-athena on ECS Fargate)"
     StartAt = "CheckRunning"
     States = {
 
@@ -170,14 +176,69 @@ resource "aws_sfn_state_machine" "pipeline" {
             }
           }
         }
-        # task description not needed downstream; keep the state small
-        ResultPath = null
+        # .sync succeeds whenever the task STOPS, even if Spark exited 1 ->
+        # keep only the exit code and check it in SilverExitCode
+        ResultSelector = {
+          "exit_code.$" = "$.Containers[0].ExitCode"
+        }
+        ResultPath = "$.silver"
         Catch = [{
           ErrorEquals = ["States.ALL"]
           ResultPath  = "$.error"
           Next        = "BronzeToSilverFailed"
         }]
-        Next = "RawFailures"
+        Next = "SilverExitCode"
+      }
+
+      SilverExitCode = {
+        Type = "Choice"
+        Choices = [{
+          Variable      = "$.silver.exit_code"
+          NumericEquals = 0
+          Next          = "SilverToGold"
+        }]
+        Default = "BronzeToSilverFailed"
+      }
+
+      # ---------- Stage 3: Silver -> Gold, dbt build (models + tests) ----------
+      # Runs only after a good Silver run: no new Bronze rows = Gold unchanged.
+      SilverToGold = {
+        Type           = "Task"
+        Resource       = "arn:aws:states:::ecs:runTask.sync"
+        TimeoutSeconds = var.dbt_timeout_minutes * 60
+        Parameters = {
+          LaunchType     = "FARGATE"
+          Cluster        = var.ecs_cluster_arn
+          TaskDefinition = var.dbt_task_definition_arn
+          NetworkConfiguration = {
+            AwsvpcConfiguration = {
+              Subnets        = var.ecs_subnet_ids
+              SecurityGroups = [var.dbt_security_group_id]
+              AssignPublicIp = "ENABLED"
+            }
+          }
+        }
+        ResultSelector = {
+          "exit_code.$" = "$.Containers[0].ExitCode"
+        }
+        ResultPath = "$.gold"
+        Catch = [{
+          ErrorEquals = ["States.ALL"]
+          ResultPath  = "$.error"
+          Next        = "SilverToGoldFailed"
+        }]
+        Next = "GoldExitCode"
+      }
+
+      # dbt exits 1 when a model OR a test (severity error) fails
+      GoldExitCode = {
+        Type = "Choice"
+        Choices = [{
+          Variable      = "$.gold.exit_code"
+          NumericEquals = 0
+          Next          = "RawFailures"
+        }]
+        Default = "SilverToGoldFailed"
       }
 
       # Silver ran on what loaded; still flag the Raw files that didn't
@@ -211,7 +272,13 @@ resource "aws_sfn_state_machine" "pipeline" {
       BronzeToSilverFailed = {
         Type  = "Fail"
         Error = "BronzeToSilverFailed"
-        Cause = "Spark task failed or timed out; logs in CloudWatch log group /ecs/<name> (stream bronze-to-silver/spark/<task id>)"
+        Cause = "Spark task failed, exited non-zero or timed out; logs in CloudWatch log group /ecs/<name> (stream bronze-to-silver/spark/<task id>)"
+      }
+
+      SilverToGoldFailed = {
+        Type  = "Fail"
+        Error = "SilverToGoldFailed"
+        Cause = "dbt build failed (model error or failing test) or timed out; logs in CloudWatch log group /ecs/<name> (stream silver-to-gold/dbt/<task id>)"
       }
     }
   })
